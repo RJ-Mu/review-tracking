@@ -14,6 +14,7 @@ several changes be grouped into a single transaction, and keeps the
 
 import json
 import psycopg2
+from psycopg2 import sql
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +117,50 @@ def get_entries(conn, category_id):
         return cur.fetchall()
 
 
+def update_entry(conn, entry_id, column_name, updated_value):
+    """
+    Update a single field of one entry. Returns rows changed (0 or 1).
+    Raises ValueError if column_name isn't valid for this entry.
+    """
+    base_columns = ["title", "rating", "notes", "reviewed_on", "is_hidden"]
+
+    # Base columns are real table columns → the name is an IDENTIFIER.
+    if column_name in base_columns:
+        query = sql.SQL("UPDATE entries SET {} = %s WHERE id = %s").format(
+            sql.Identifier(column_name)
+        )
+        with conn.cursor() as cur:
+            cur.execute(query, (updated_value, entry_id))
+            return cur.rowcount
+
+    # Not a base column — find the category-specific columns valid for
+    # THIS entry's category.
+    with conn.cursor() as cur:
+        cur.execute(
+            """SELECT cc.name
+               FROM category_columns cc
+               JOIN entries e ON e.category_id = cc.category_id
+               WHERE e.id = %s;""",
+            (entry_id,),
+        )
+        category_columns = [row[0] for row in cur.fetchall()]
+
+    # Category columns live inside the JSONB `data` bag → the name is a
+    # KEY (a value), so it rides in on %s, not sql.Identifier.
+    if column_name in category_columns:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE entries SET data = jsonb_set(data, %s::text[], %s::jsonb) "
+                "WHERE id = %s;",
+                ([column_name], json.dumps(updated_value), entry_id),
+            )
+            return cur.rowcount
+
+    raise ValueError(f"Unknown column: {column_name}")
+
+    
+
+
 def delete_entry(conn, entry_id):
     """Delete one entry by id. Returns the number of rows removed (0 or 1)."""
     with conn.cursor() as cur:
@@ -124,6 +169,21 @@ def delete_entry(conn, entry_id):
             (entry_id,),
         )
         return cur.rowcount
+
+
+# ---------------------------------------------------------------------------
+# Raw Data
+# ---------------------------------------------------------------------------
+
+def get_raw_data(conn):
+    """
+    Return the raw data set in full.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT * FROM entries"
+        )
+        return cur.fetchall()
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +207,7 @@ def main():
         print("Movies id:", movies_id)
 
         if movies_id is not None:
-            print("Entries:", get_entries(conn, movies_id))
+            print(get_entries(conn, movies_id))
 
         # Destructive test — uncomment to try a delete. Remember: the commit
         # is what makes it stick; without it Postgres rolls the delete back.
@@ -155,6 +215,10 @@ def main():
         # print("Rows deleted:", removed)
         # conn.commit()
 
+        # print(get_raw_data(conn))
+        update_entry(conn, 4, "year", "2023")
+        conn.commit()
+        print(get_entries(conn, movies_id))
     finally:
         conn.close()
 
