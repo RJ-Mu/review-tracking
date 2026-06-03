@@ -5,10 +5,20 @@ Data-access layer for the review-tracking app.
 Small reusable functions that wrap the SQL, so the rest of the app
 (UI, import/export) can just call add_entry(...) / get_entries(...)
 without writing SQL itself.
+
+Transaction note: none of these functions commit. The caller opens a
+connection, calls one or more of these, and commits when ready. That lets
+several changes be grouped into a single transaction, and keeps the
+"when does it become permanent" decision in one place.
 """
 
 import json
 import psycopg2
+
+
+# ---------------------------------------------------------------------------
+# Connection
+# ---------------------------------------------------------------------------
 
 # Local dev connection settings. Fine to hardcode for a local learning
 # project; for anything real you'd read these from environment variables
@@ -26,6 +36,10 @@ def get_connection():
     """Open a new connection to the database."""
     return psycopg2.connect(**DB_CONFIG)
 
+
+# ---------------------------------------------------------------------------
+# Categories
+# ---------------------------------------------------------------------------
 
 def add_category(conn, name):
     """Create a category and return its new id."""
@@ -47,6 +61,30 @@ def add_category_column(conn, category_id, name, data_type, position):
         )
         return cur.fetchone()[0]
 
+
+def get_category_id(conn, name):
+    """Return the id for a category name, or None if no such category exists."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id FROM categories WHERE name = %s;",
+            (name,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return None
+        return row[0]
+
+
+def get_categories(conn):
+    """Return all categories as a list of (id, name) rows."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, name FROM categories ORDER BY id;")
+        return cur.fetchall()
+
+
+# ---------------------------------------------------------------------------
+# Entries
+# ---------------------------------------------------------------------------
 
 def add_entry(conn, category_id, title, rating, reviewed_on, data):
     """
@@ -78,37 +116,45 @@ def get_entries(conn, category_id):
         return cur.fetchall()
 
 
+def delete_entry(conn, entry_id):
+    """Delete one entry by id. Returns the number of rows removed (0 or 1)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM entries WHERE id = %s;",
+            (entry_id,),
+        )
+        return cur.rowcount
+
+
+# ---------------------------------------------------------------------------
+# Scratchpad
+# ---------------------------------------------------------------------------
+
 def main():
-    """Demo: build a category, add one entry, read it back."""
+    """
+    Throwaway scratchpad for trying functions by hand.
+
+    Runs only when you execute this file directly (python review_db.py).
+    When a UI later does `import review_db`, this block does NOT run, so the
+    library stays clean. Edit freely — nothing here is part of the real app.
+    """
     conn = get_connection()
     try:
-        # Set up a category and its extra columns
-        cat_id = add_category(conn, "Movies")
-        add_category_column(conn, cat_id, "director", "text", 1)
-        add_category_column(conn, cat_id, "year", "number", 2)
+        # Read-only checks — safe to run as often as you like.
+        print("Categories:", get_categories(conn))
 
-        # Add one review
-        add_entry(
-            conn,
-            category_id=cat_id,
-            title="Barbie",
-            rating=7.5,
-            reviewed_on="2024-01-15",
-            data={"director": "Greta Gerwig", "year": 2023},
-        )
+        movies_id = get_category_id(conn, "Movies")
+        print("Movies id:", movies_id)
 
-        # Nothing above is permanent until we commit (see notes in chat)
-        conn.commit()
+        if movies_id is not None:
+            print("Entries:", get_entries(conn, movies_id))
 
-        # Read it back
-        rows = get_entries(conn, cat_id)
-        print(f"Found {len(rows)} entry/entries in category {cat_id}:")
-        for entry_id, title, rating, reviewed_on, data in rows:
-            print(
-                f"  #{entry_id}: {title} ({rating}/10), "
-                f"reviewed {reviewed_on}, "
-                f"director={data.get('director')}, year={data.get('year')}"
-            )
+        # Destructive test — uncomment to try a delete. Remember: the commit
+        # is what makes it stick; without it Postgres rolls the delete back.
+        # removed = delete_entry(conn, 3)
+        # print("Rows deleted:", removed)
+        # conn.commit()
+
     finally:
         conn.close()
 
