@@ -180,6 +180,33 @@ def update_entry(conn):
     print(f"updated entry #{entry_id}")
 
 
+def delete_entry(conn):
+    """Show one entry, confirm, then delete it."""
+    entry_id = int(input("entry id: "))
+
+    # Look it up first — both to catch a bad id before doing anything, and
+    # so we can show the user exactly what they're about to remove.
+    entry = review_db.get_entry(conn, entry_id)
+    if entry is None:
+        print("no entry with that id")
+        return
+
+    # Deletes don't come back, so confirm against the title rather than just
+    # the id — easy to fat-finger a number, harder to confirm the wrong name.
+    print(f"about to delete #{entry_id}: {entry['title']}")
+    confirm = input("type 'yes' to confirm: ").strip()
+    if confirm != "yes":
+        print("cancelled")
+        return
+
+    # delete_entry returns the row count: 1 if it removed something, 0 if
+    # nothing matched. (We already know the entry exists, so expect 1 —
+    # but reporting the real number keeps us honest.)
+    removed = review_db.delete_entry(conn, entry_id)
+    conn.commit()
+    print(f"deleted {removed} entry")
+
+
 
 
 
@@ -205,6 +232,7 @@ def main():
             print("2) view a category's entries")
             print("3) add an entry")
             print("u) update an entry")
+            print("d) delete an entry")
             print("c) create a category")
             print("q) quit")
 
@@ -220,6 +248,8 @@ def main():
                 add_entry(conn)
             elif choice == "u":
                 update_entry(conn)
+            elif choice == "d":
+                delete_entry(conn)
             elif choice == "c":
                 create_category(conn)
             elif choice == "q":
