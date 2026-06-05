@@ -90,7 +90,7 @@ def view_entries(conn):
 
     # get_entries returns (id, title, rating, reviewed_on, data) tuples.
     # `data` is the JSONB bag, already handed back as a Python dict.
-    entries = review_db.get_entries(conn, category_id)
+    entries = review_db.get_category_entries(conn, category_id)
 
     if not entries:
         print("(no entries for that category)")
@@ -130,6 +130,56 @@ def add_entry(conn):
     print(f"added entry #{new_id}")
 
 
+def update_entry(conn):
+    """Show one entry, then let the user edit its fields one at a time."""
+    entry_id = int(input("entry id: "))
+
+    # get_entry returns None when no entry has that id — bail before the
+    # loop rather than letting the user "edit" something that isn't there.
+    entry = review_db.get_entry(conn, entry_id)
+    if entry is None:
+        print("no entry with that id")
+        return
+
+    # Show each editable column alongside its current value, so the user
+    # sees what they're changing FROM. Base columns sit at the top level of
+    # the entry dict; the category-specific ones live inside the `data` bag.
+    base_columns = ["title", "rating", "notes", "reviewed_on", "is_hidden"]
+
+    print(f"\nediting #{entry_id}:")
+    print("  base columns:")
+    for col in base_columns:
+        print(f"    {col}: {entry[col]}")
+
+    print("  extra columns:")
+    if entry["data"]:
+        for col, value in entry["data"].items():
+            print(f"    {col}: {value}")
+    else:
+        print("    (none)")
+
+    while True:
+        column_name = input("\ncolumn to change (or 'q' to finish): ")
+        if column_name == "q":
+            break
+
+        updated_value = input("new value: ")
+
+        # review_db.update_entry raises ValueError for a name that's neither
+        # a base column nor valid for this entry's category. Catch it and
+        # re-prompt instead of crashing — same reasoning as create_category:
+        # everything here shares one commit, so a crash would discard any
+        # edits already made in this loop.
+        try:
+            review_db.update_entry(conn, entry_id, column_name, updated_value)
+        except ValueError as err:
+            print(f"  {err} — try again")
+
+    # One commit makes every change in the loop land together.
+    conn.commit()
+    print(f"updated entry #{entry_id}")
+
+
 
 
 
@@ -154,6 +204,7 @@ def main():
             print("1) list categories")
             print("2) view a category's entries")
             print("3) add an entry")
+            print("u) update an entry")
             print("c) create a category")
             print("q) quit")
 
@@ -167,6 +218,8 @@ def main():
                 view_entries(conn)
             elif choice == "3":
                 add_entry(conn)
+            elif choice == "u":
+                update_entry(conn)
             elif choice == "c":
                 create_category(conn)
             elif choice == "q":
