@@ -109,9 +109,31 @@ def add_entry(conn, category_id, title, rating, reviewed_on, data):
             (category_id, title, rating, reviewed_on, json.dumps(data)),
         )
         return cur.fetchone()[0]
+    
+
+def get_entry(conn, entry_id):
+    """
+    Return one entry as a dict keyed by column name, or None if no entry
+    has that id. The JSONB `data` column comes back as a nested dict.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT * FROM entries WHERE id = %s;",
+            (entry_id,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return None
+
+        # cur.description has one item per selected column; item[0] is that
+        # column's name. Zipping those names against the row's values turns
+        # the plain tuple into {column_name: value} without hardcoding the
+        # column list — so it keeps working if the table gains a column.
+        column_names = [desc[0] for desc in cur.description]
+        return dict(zip(column_names, row))
 
 
-def get_entries(conn, category_id):
+def get_category_entries(conn, category_id):
     """
     Return all visible entries for a category as a list of rows.
     The JSONB `data` column comes back as a Python dict automatically.
@@ -217,7 +239,7 @@ def main():
         print("Movies id:", movies_id)
 
         if movies_id is not None:
-            print(get_entries(conn, movies_id))
+            print(get_category_entries(conn, movies_id))
 
         # Destructive test — uncomment to try a delete. Remember: the commit
         # is what makes it stick; without it Postgres rolls the delete back.
@@ -230,7 +252,7 @@ def main():
         # conn.commit()
         # print(get_entries(conn, movies_id))
 
-        print(get_category_columns(conn, 2))
+        print(get_entry(conn, 4))
     finally:
         conn.close()
 
