@@ -34,6 +34,53 @@ def list_categories(conn):
         print(f"{category_id}: {name}")
 
 
+# Valid types come straight from the CHECK constraint on category_columns.
+# Keeping them here lets us reject a bad type before it hits the database.
+VALID_DATA_TYPES = ("text", "number", "boolean", "date")
+
+
+def create_category(conn):
+    """Create a category, then prompt for its category-specific columns."""
+    category_name = input("category name: ")
+    if category_name == 'q':
+        print("cancelled category creation")
+        return
+
+    # add_category already RETURNs the new id, so use it directly — no need
+    # to turn around and re-fetch it with get_category_id.
+    category_id = review_db.add_category(conn, category_name)
+
+    # Guide for the loop below: the user keeps adding columns until they
+    # signal they're done by entering 'q' as the column name.
+    print("now add this category's columns — enter 'q' as the name to finish")
+
+    pos = 1
+    while True:
+        column_name = input("column name (or 'q' to finish): ")
+        if column_name == "q":
+            break
+
+        # Re-prompt until we get a valid type. Worth doing here (unlike the
+        # crash-on-typo cases we deferred elsewhere) because everything in
+        # this function shares ONE transaction: a rejected insert mid-loop
+        # would poison it and we'd lose the whole category at commit time.
+        column_datatype = input("data type (text / number / boolean / date): ")
+        while column_datatype not in VALID_DATA_TYPES:
+            print(f"  '{column_datatype}' isn't valid — pick one of {', '.join(VALID_DATA_TYPES)}")
+            column_datatype = input("data type (text / number / boolean / date): ")
+
+        review_db.add_category_column(conn, category_id, column_name, column_datatype, pos)
+        pos += 1
+
+    # One commit at the end makes the category and all its columns land
+    # together — or, if you bailed before adding any, just the category.
+    conn.commit()
+    print(f"added category {category_name} (#{category_id})")
+
+    
+
+
+
 def view_entries(conn):
     """Ask for a category id, then print that category's entries."""
     # input() ALWAYS returns a string, so "2" comes back as text, not the
@@ -107,6 +154,7 @@ def main():
             print("1) list categories")
             print("2) view a category's entries")
             print("3) add an entry")
+            print("c) create a category")
             print("q) quit")
 
             # 2. Read the choice. .strip() drops stray spaces / the newline.
@@ -119,6 +167,8 @@ def main():
                 view_entries(conn)
             elif choice == "3":
                 add_entry(conn)
+            elif choice == "c":
+                create_category(conn)
             elif choice == "q":
                 break  # 4. the only way out of the loop
             else:
