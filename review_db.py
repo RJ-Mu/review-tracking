@@ -81,6 +81,16 @@ def get_categories(conn):
     with conn.cursor() as cur:
         cur.execute("SELECT id, name FROM categories ORDER BY id;")
         return cur.fetchall()
+    
+
+def get_category_columns(conn, category_id):
+    """Return all category columns as a list of (col_name, data_type) rows."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT name, data_type FROM category_columns WHERE category_id = %s", 
+            (category_id,)
+        )
+        return cur.fetchall()
 
 
 # ---------------------------------------------------------------------------
@@ -216,9 +226,11 @@ def main():
         # conn.commit()
 
         # print(get_raw_data(conn))
-        update_entry(conn, 4, "year", "2023")
-        conn.commit()
-        print(get_entries(conn, movies_id))
+        # update_entry(conn, 4, "year", "2023")
+        # conn.commit()
+        # print(get_entries(conn, movies_id))
+
+        print(get_category_columns(conn, 2))
     finally:
         conn.close()
 

@@ -17,6 +17,7 @@ functions that already exist in review_db.
 """
 
 import review_db
+import datetime
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +54,38 @@ def view_entries(conn):
         print(f"     extra: {data}")
 
 
+def add_entry(conn):
+    """Prompt for one new entry's fields, insert it, and commit."""
+    # Category first: it's what decides which extra fields we ask for below.
+    category_id = int(input("category id: "))
+
+    title = input("title: ")
+
+    # input() gives a string; the rating column is numeric, so convert.
+    # round(..., 1) keeps it to one decimal place.
+    rating = round(float(input("rating: ")), 1)
+
+    # The column is a DATE, so date.today() (no time component) fits cleanly.
+    reviewed_on = datetime.date.today()
+
+    # Ask for each category-specific field and collect them into a DICT
+    # keyed by column name — that's the shape review_db.add_entry expects
+    # for the JSONB `data` bag. (data_type is unused for now; it's what
+    # you'd reach for later to validate or convert each value.)
+    data = {}
+    for col_name, data_type in review_db.get_category_columns(conn, category_id):
+        data[col_name] = input(f"{col_name}: ")
+
+    # Writes don't take effect until commit — the new wrinkle versus the
+    # read-only screens, which needed none.
+    new_id = review_db.add_entry(conn, category_id, title, rating, reviewed_on, data)
+    conn.commit()
+    print(f"added entry #{new_id}")
+
+
+
+
+
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
@@ -73,6 +106,7 @@ def main():
             print("\n--- review tracker ---")
             print("1) list categories")
             print("2) view a category's entries")
+            print("3) add an entry")
             print("q) quit")
 
             # 2. Read the choice. .strip() drops stray spaces / the newline.
@@ -83,6 +117,8 @@ def main():
                 list_categories(conn)
             elif choice == "2":
                 view_entries(conn)
+            elif choice == "3":
+                add_entry(conn)
             elif choice == "q":
                 break  # 4. the only way out of the loop
             else:
