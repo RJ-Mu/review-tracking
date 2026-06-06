@@ -1,12 +1,6 @@
--- review-tracking : SQLite schema (ported from the PostgreSQL reference)
--- Run once on a fresh database by the worker.
-
--- ------------------------------------------------------------
--- categories
--- Groups entries sharing the same extra columns.
--- parent_id: NULL = top-level category; otherwise a subcategory
--- of the referenced category. is_hidden: hide without deleting.
--- ------------------------------------------------------------
+// SQLite schema (ported from the PostgreSQL reference in repo root).
+// Kept as a JS string export so it imports reliably inside the worker.
+export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS categories (
     id          INTEGER PRIMARY KEY,
     name        TEXT NOT NULL,
@@ -16,11 +10,6 @@ CREATE TABLE IF NOT EXISTS categories (
     UNIQUE (parent_id, name)
 );
 
--- ------------------------------------------------------------
--- category_columns
--- The "rulebook": which extra columns each category has and
--- their type. The app reads this to build forms and validate.
--- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS category_columns (
     id           INTEGER PRIMARY KEY,
     category_id  INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
@@ -30,11 +19,6 @@ CREATE TABLE IF NOT EXISTS category_columns (
     UNIQUE (category_id, name)
 );
 
--- ------------------------------------------------------------
--- entries
--- One review. Base columns are real columns; category-specific
--- values live in the JSON "data" column, validated by the app.
--- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS entries (
     id           INTEGER PRIMARY KEY,
     category_id  INTEGER NOT NULL REFERENCES categories(id),
@@ -50,11 +34,7 @@ CREATE TABLE IF NOT EXISTS entries (
 
 CREATE INDEX IF NOT EXISTS idx_entries_category ON entries (category_id);
 
--- ------------------------------------------------------------
--- schema_version
--- Single-row table recording the schema version, so future
--- changes can migrate existing data cleanly.
--- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
+`;

@@ -2,27 +2,25 @@ import { query } from './db/client.js';
 
 const app = document.querySelector('#app');
 
-async function smokeTest() {
-  await query(`CREATE TABLE IF NOT EXISTS smoke (
-    id INTEGER PRIMARY KEY,
-    ts TEXT
-  )`);
-  // Insert one row per page load, stamped with the current time.
-  await query(`INSERT INTO smoke (ts) VALUES (?)`, [new Date().toISOString()]);
-  const rows = await query(`SELECT * FROM smoke ORDER BY id`);
-  render(rows);
-}
+async function verifySchema() {
+  // List the tables that exist, and the version we stamped.
+  const tables = await query(
+    `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`
+  );
+  const version = await query(`SELECT version FROM schema_version`);
 
-function render(rows) {
   app.innerHTML = `
-    <h1>SQLite-WASM smoke test</h1>
-    <p>Rows stored: <strong>${rows.length}</strong></p>
-    <p>Refresh the page — this number should climb by one each time
-       and survive the refresh. That proves the data is persisting on-device.</p>
-    <ul>${rows.map((r) => `<li>#${r.id} — ${r.ts}</li>`).join('')}</ul>
+    <h1>Schema check</h1>
+    <p>Schema version: <strong>${version[0]?.version ?? '(none)'}</strong></p>
+    <p>Tables created:</p>
+    <ul>${tables.map((t) => `<li>${t.name}</li>`).join('')}</ul>
+    <p>You should see: categories, category_columns, entries,
+       schema_version (plus sqlite_* internal tables). Refresh a few
+       times — the list and version should stay identical, proving
+       re-opening doesn't recreate or duplicate anything.</p>
   `;
 }
 
-smokeTest().catch((err) => {
+verifySchema().catch((err) => {
   app.innerHTML = `<h1>Error</h1><pre style="color:red">${err.message}</pre>`;
 });
