@@ -95,3 +95,62 @@ body::after {
 .msg-strip.info { color: var(--fg); }
 .msg-strip.warn { color: var(--warn); text-shadow: 0 0 4px rgba(255,210,60,.5); }
 .msg-strip.err  { color: var(--err);  text-shadow: 0 0 4px rgba(255,92,77,.5); }
+
+/* --- table (Phase 6) --- */
+.table-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.table-head .name { text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+
+.table-scroll {
+  overflow: auto;              /* both axes scroll inside this box */
+  max-height: 62vh;            /* keeps vertical scroll on-screen at phone height */
+  border: 1px solid var(--fg-dim);
+}
+table.data {
+  border-collapse: collapse;
+  width: max-content;          /* grow wider than the screen -> horizontal scroll */
+  min-width: 100%;             /* but fill the box when there are few columns */
+  font-size: .82rem;
+}
+table.data th, table.data td {
+  border: 1px solid var(--fg-dim);
+  padding: 7px 10px;
+  text-align: left;
+  white-space: nowrap;         /* cells never wrap -> columns hold width -> h-scroll */
+  text-transform: uppercase;
+}
+table.data th {
+  position: sticky; top: 0;    /* header row stays put on vertical scroll */
+  background: var(--bg);
+  cursor: pointer; user-select: none;
+  color: var(--fg-bright);
+}
+table.data th:hover { background: rgba(47,255,102,.10); }
+table.data th .ind { color: var(--fg-dim); margin-left: 6px; }
+table.data tbody tr:hover { background: rgba(47,255,102,.06); }
+td.empty-cell { color: var(--fg-dim); }
+.table-empty {
+  color: var(--fg-dim); text-transform: uppercase;
+  padding: 18px 8px; border: 1px solid var(--fg-dim);
+}
+
+/* --- terminal scrollbars --- */
+/* WebKit/Blink: Chrome, Edge, Safari, Android */
+.table-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.table-scroll::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-left: 1px solid var(--fg-dim);
+  border-top: 1px solid var(--fg-dim);
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--fg-dim);
+  border: 1px solid var(--bg);
+  box-shadow: inset 0 0 3px rgba(47,255,102,.5);
+}
+.table-scroll::-webkit-scrollbar-thumb:hover { background: var(--fg); }
+.table-scroll::-webkit-scrollbar-corner { background: var(--bg); }
+
+/* Firefox */
+.table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fg-dim) var(--bg);
+}

@@ -8,7 +8,7 @@ let db = null;
 async function initDb() {
   const sqlite3 = await sqlite3InitModule();
   const poolUtil = await sqlite3.installOpfsSAHPoolVfs({});
-  db = new poolUtil.OpfsSAHPoolDb('/review-v3.sqlite3');
+  db = new poolUtil.OpfsSAHPoolDb('/review-v4.sqlite3');
 
   db.exec('PRAGMA foreign_keys = ON');
 
