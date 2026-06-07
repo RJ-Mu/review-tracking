@@ -31,15 +31,8 @@ export async function renderTable(container, category, { showMessage, onBack }) 
 
   let sort = { key: null, dir: 1 }; // dir 1 = asc, -1 = desc
 
-  container.innerHTML = `
-    <div class="table-head">
-      <button class="term-btn" id="back">&lt; Back</button>
-      <span class="name">${escapeHtml(category.name)}</span>
-    </div>
-    <div id="table-host"></div>
-  `;
-  container.querySelector('#back').addEventListener('click', onBack);
-  const host = container.querySelector('#table-host');
+  container.innerHTML = '';
+  const host = container;
 
   const valueOf = (entry, col) => {
     const v = col.source === 'base' ? entry[col.key] : entry.data[col.key];

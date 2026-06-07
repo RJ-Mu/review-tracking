@@ -1,5 +1,6 @@
 import { getCategories, addCategory, addCategoryColumn, addEntry } from '../db/api.js';
 import { renderTable } from './table.js';
+import { renderAddForm } from './entry-form.js';
 
 let msgEl, contentEl;
 
@@ -34,11 +35,32 @@ function catRow(cat, isSub) {
   li.className = 'cat-item' + (isSub ? ' sub' : '');
   li.textContent = cat.name;
   li.tabIndex = 0;
-  const open = () =>
-    renderTable(contentEl, cat, { showMessage, onBack: renderCategoryList });
+  const open = () => openCategory(cat);
   li.addEventListener('click', open);
   li.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
   return li;
+}
+
+function openCategory(cat) {
+  contentEl.innerHTML = `
+    <div class="fab-row">
+      <button class="term-btn" id="back-cats">&lt; Categories</button>
+      <button class="term-btn" id="new-entry">+ New Entry</button>
+    </div>
+    <div id="table-host"></div>
+  `;
+  contentEl.querySelector('#back-cats').addEventListener('click', renderCategoryList);
+  contentEl.querySelector('#new-entry').addEventListener('click', () => {
+    renderAddForm(contentEl, cat, {
+      showMessage,
+      onSaved:  () => openCategory(cat),   // back to the table, now with the new row
+      onCancel: () => openCategory(cat),
+    });
+  });
+  renderTable(contentEl.querySelector('#table-host'), cat, {
+    showMessage,
+    onBack: renderCategoryList,
+  });
 }
 
 async function renderCategoryList() {

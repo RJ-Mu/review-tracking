@@ -154,3 +154,23 @@ td.empty-cell { color: var(--fg-dim); }
   scrollbar-width: thin;
   scrollbar-color: var(--fg-dim) var(--bg);
 }
+
+/* --- forms (Phase 7) --- */
+.entry-form { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label { text-transform: uppercase; font-size: .74rem; color: var(--fg-dim); letter-spacing: .08em; }
+.term-input, textarea.term-input {
+  font-family: var(--mono); background: rgba(47,255,102,.04); color: var(--fg-bright);
+  border: 1px solid var(--fg-dim); padding: 10px 11px; font-size: .9rem;
+  text-shadow: var(--glow); width: 100%; min-height: 44px;
+}
+textarea.term-input { resize: vertical; min-height: 56px; }
+.term-input:focus {
+  outline: none; border-color: var(--fg); background: rgba(47,255,102,.08);
+  box-shadow: inset 0 0 6px rgba(47,255,102,.18);
+}
+/* dark-mode date picker + spinners in WebKit */
+.term-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) hue-rotate(70deg); cursor: pointer; }
+.term-check { width: 22px; height: 22px; accent-color: var(--fg); align-self: flex-start; }
+.term-btn.submit { margin-top: 4px; align-self: flex-start; }
+.fab-row { display: flex; gap: 10px; margin: 12px 0 4px; }
