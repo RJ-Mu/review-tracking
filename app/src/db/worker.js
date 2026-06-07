@@ -10,10 +10,8 @@ async function initDb() {
   const poolUtil = await sqlite3.installOpfsSAHPoolVfs({});
   db = new poolUtil.OpfsSAHPoolDb('/review-v2.sqlite3');
 
-  // SQLite does NOT enforce foreign keys unless asked, per-connection.
   db.exec('PRAGMA foreign_keys = ON');
 
-  // Fresh-DB detection: has the schema_version table been created yet?
   const existing = db.exec({
     sql: `SELECT name FROM sqlite_master
           WHERE type='table' AND name='schema_version'`,
@@ -23,13 +21,10 @@ async function initDb() {
   });
 
   if (existing.length === 0) {
-    // Fresh database: create everything, then record the version.
     db.exec(schemaSql);
     db.exec({ sql: 'INSERT INTO schema_version (version) VALUES (?)',
               bind: [SCHEMA_VERSION] });
   }
-  // If schema_version already exists, this DB is initialized — do nothing.
-  // (Future migrations will read the stored version and act on it here.)
 }
 
 const ready = initDb();
@@ -45,7 +40,10 @@ self.onmessage = async (event) => {
       resultRows: [],
       returnValue: 'resultRows',
     });
-    self.postMessage({ id, rows });
+    // changes() = rows affected by the most recent INSERT/UPDATE/DELETE,
+    // the SQLite equivalent of psycopg2's cur.rowcount.
+    const changes = db.changes();
+    self.postMessage({ id, rows, changes });
   } catch (err) {
     self.postMessage({ id, error: err.message || String(err) });
   }
