@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>P1 Icon Generator</title>
+<style>
+  :root {
+    --bg: #0c0f0c; --panel: #111611; --fg: #2fff66; --dim: #169c3c; --line: #1c2a1c;
+    --mono: 'Courier New', Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono);
+         display: flex; flex-wrap: wrap; gap: 28px; padding: 28px; align-items: flex-start; }
+  h1 { font-size: 1rem; letter-spacing: .15em; text-transform: uppercase; margin: 0 0 16px; }
+  .stage { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  /* checkerboard shows transparency if bg alpha < 1 */
+  .canvas-wrap { background:
+      repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 50% / 24px 24px; padding: 0; line-height: 0; }
+  canvas { width: 320px; height: 320px; image-rendering: auto; display: block; }
+  .controls { background: var(--panel); border: 1px solid var(--line); padding: 18px;
+              min-width: 300px; display: flex; flex-direction: column; gap: 14px; }
+  label { display: flex; flex-direction: column; gap: 5px; font-size: .72rem;
+          text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+  input[type=text], input[type=number], select {
+    font-family: var(--mono); background: #0a0d0a; color: var(--fg);
+    border: 1px solid var(--dim); padding: 8px; font-size: .9rem; }
+  .row { display: flex; gap: 12px; }
+  .row > label { flex: 1; }
+  .chk { flex-direction: row; align-items: center; gap: 8px; color: var(--fg); }
+  input[type=range] { accent-color: var(--fg); }
+  input[type=color] { width: 100%; height: 34px; background: #0a0d0a; border: 1px solid var(--dim); }
+  .val { color: var(--fg); }
+  button { font-family: var(--mono); background: transparent; color: var(--fg);
+           border: 1px solid var(--fg); padding: 11px; text-transform: uppercase;
+           letter-spacing: .08em; cursor: pointer; font-size: .85rem; }
+  button:hover { background: rgba(47,255,102,.12); }
+  .hint { font-size: .68rem; color: var(--dim); line-height: 1.5; text-transform: none; letter-spacing: 0; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <h1>P1 Icon &mdash; 512&times;512</h1>
+    <div class="canvas-wrap"><canvas id="c" width="512" height="512"></canvas></div>
+    <button id="dl">Download PNG</button>
+  </div>
+
+  <div class="controls">
+    <label>Text
+      <input type="text" id="text" value="&gt;P1" />
+    </label>
+    <div class="row">
+      <label>Font size <span class="val" id="fsv"></span>
+        <input type="range" id="fs" min="120" max="340" value="210" />
+      </label>
+      <label>Letter spacing <span class="val" id="lsv"></span>
+        <input type="range" id="ls" min="-10" max="40" value="0" />
+      </label>
+    </div>
+    <div class="row">
+      <label>Text color <input type="color" id="fg" value="#2fff66" /></label>
+      <label>Background <input type="color" id="bg" value="#081008" /></label>
+    </div>
+    <div class="row">
+      <label>Corner radius <span class="val" id="crv"></span>
+        <input type="range" id="cr" min="0" max="256" value="96" />
+      </label>
+      <label>Glow <span class="val" id="glv"></span>
+        <input type="range" id="gl" min="0" max="60" value="22" />
+      </label>
+    </div>
+    <label class="chk"><input type="checkbox" id="scan" checked /> Scanlines</label>
+    <label class="chk"><input type="checkbox" id="border" checked /> Inner border</label>
+    <label class="chk"><input type="checkbox" id="transparent" /> Transparent background</label>
+    <label>Padding for maskable (safe-zone guide) <span class="val" id="pdv"></span>
+      <input type="range" id="pd" min="0" max="120" value="0" />
+    </label>
+    <p class="hint">The dashed circle (when padding &gt; 0) shows Android's maskable crop zone &mdash;
+      keep the text inside it. For your main icon leave padding at 0; we'll make the padded
+      maskable version in the resize step. Download saves a 512&times;512 PNG named <b>icon-source.png</b>.</p>
+  </div>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const $ = (id) => document.getElementById(id);
+const ids = ['text','fs','ls','fg','bg','cr','gl','scan','border','transparent','pd'];
+
+function roundRectPath(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw() {
+  const S = 512;
+  const text = $('text').value || '';
+  const fs = +$('fs').value, ls = +$('ls').value, cr = +$('cr').value, gl = +$('gl').value;
+  const fg = $('fg').value, bg = $('bg').value;
+  const scan = $('scan').checked, border = $('border').checked, transparent = $('transparent').checked, pd = +$('pd').value;
+
+  $('fsv').textContent = fs; $('lsv').textContent = ls; $('crv').textContent = cr;
+  $('glv').textContent = gl; $('pdv').textContent = pd;
+
+  ctx.clearRect(0, 0, S, S);
+
+  // clip to rounded square so corners are transparent
+  ctx.save();
+  roundRectPath(0, 0, S, S, cr);
+  ctx.clip();
+
+  if (!transparent) { ctx.fillStyle = bg; ctx.fillRect(0, 0, S, S); }
+
+  // subtle radial vignette
+  if (!transparent) {
+    const g = ctx.createRadialGradient(S/2, S/2, S*0.2, S/2, S/2, S*0.72);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+  }
+
+  // scanlines
+  if (scan) {
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    for (let y = 0; y < S; y += 6) ctx.fillRect(0, y, S, 3);
+  }
+
+  // text with letter spacing, centered
+  ctx.font = `bold ${fs}px ${'Courier New, Consolas, monospace'}`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  const chars = [...text];
+  const widths = chars.map((ch) => ctx.measureText(ch).width + ls);
+  const total = widths.reduce((a, b) => a + b, 0) - ls;
+  let x = (S - total) / 2;
+  const y = S / 2 + fs * 0.02;
+
+  ctx.shadowColor = fg; ctx.shadowBlur = gl;
+  ctx.fillStyle = fg;
+  for (let i = 0; i < chars.length; i++) {
+    ctx.fillText(chars[i], x, y);
+    x += widths[i];
+  }
+  ctx.shadowBlur = 0;
+
+  // inner border
+  if (border) {
+    ctx.strokeStyle = fg; ctx.globalAlpha = 0.5; ctx.lineWidth = 6;
+    roundRectPath(20, 20, S - 40, S - 40, Math.max(0, cr - 14));
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+
+  // maskable safe-zone guide (not part of the image — drawn after restore as overlay)
+  if (pd > 0) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,210,60,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.arc(S/2, S/2, (S/2) - pd, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+ids.forEach((id) => {
+  $(id).addEventListener('input', draw);
+  $(id).addEventListener('change', draw);
+});
+
+$('dl').addEventListener('click', () => {
+  // redraw without the guide circle so it isn't baked in
+  const pdEl = $('pd'); const keep = pdEl.value; pdEl.value = 0; draw();
+  const a = document.createElement('a');
+  a.download = 'icon-source.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+  pdEl.value = keep; draw();
+});
+
+draw();
+</script>
+</body>
+</html>
