@@ -2,6 +2,7 @@ import { getCategories, setCategoryHidden } from '../db/api.js';
 import { renderTable } from './table.js';
 import { renderEntryForm } from './entry-form.js';
 import { renderCategoryForm } from './category-form.js';
+import { renderDataScreen } from './data-screen.js';
 
 let msgEl, contentEl;
 
@@ -43,6 +44,7 @@ async function renderCategoryList() {
       <div class="cat-toolbar">
         <div class="tb-left"><div class="prompt" style="margin:0;">// Categories</div></div>
         <div class="tb-right">
+          <button class="term-btn" id="data-btn">Data</button>
           <button class="term-btn" id="manage-cats">Manage</button>
           <button class="term-btn" id="new-cat">+ New</button>
         </div>
@@ -50,6 +52,13 @@ async function renderCategoryList() {
       <ul class="cat-list" id="cat-list"></ul>
     `;
     const list = contentEl.querySelector('#cat-list');
+    contentEl.querySelector('#data-btn').addEventListener('click', () => {
+      renderDataScreen(contentEl, {
+        showMessage,
+        onBack: renderCategoryList,
+        onDataChanged: renderCategoryList,
+      });
+    });
     contentEl.querySelector('#new-cat').addEventListener('click', openNewCategory);
     contentEl.querySelector('#manage-cats').addEventListener('click', renderManageList);
 

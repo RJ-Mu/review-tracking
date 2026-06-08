@@ -156,3 +156,39 @@ export async function deleteEntries(ids) {
   const placeholders = ids.map(() => '?').join(', ');
   return execute(`DELETE FROM entries WHERE id IN (${placeholders})`, ids);
 }
+
+// --- Export / import / reset (Phase 10) ---
+
+// Full dump for export: categories + their columns, and all entries (incl. hidden).
+export async function exportAll() {
+  const cats = await query(`SELECT id, name, is_hidden FROM categories ORDER BY id`);
+  const categories = [];
+  for (const c of cats) {
+    const cols = await query(
+      `SELECT name, data_type, position, min_val, max_val
+       FROM category_columns WHERE category_id = ? ORDER BY position, id`, [c.id]);
+    categories.push({ name: c.name, is_hidden: c.is_hidden, columns: cols });
+  }
+  const rawEntries = await query(
+    `SELECT e.title, e.rating, e.notes, e.reviewed_on, e.is_hidden, e.data, c.name AS category
+     FROM entries e JOIN categories c ON c.id = e.category_id ORDER BY e.id`);
+  const entries = rawEntries.map((e) => ({
+    category: e.category, title: e.title, rating: e.rating, notes: e.notes,
+    reviewed_on: e.reviewed_on, is_hidden: e.is_hidden, data: JSON.parse(e.data),
+  }));
+  return { format: 'review-terminal-export', version: 1,
+           exported_at: new Date().toISOString(), categories, entries };
+}
+
+// Wipe all data (req 11.1). Order respects foreign keys.
+export async function resetAll() {
+  await execute(`DELETE FROM entries`);
+  await execute(`DELETE FROM category_columns`);
+  await execute(`DELETE FROM categories`);
+}
+
+// Look up existing category names (for merge collision handling).
+export async function getCategoryNames() {
+  const rows = await query(`SELECT name FROM categories`);
+  return rows.map((r) => r.name);
+}
