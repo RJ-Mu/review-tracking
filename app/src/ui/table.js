@@ -1,5 +1,6 @@
 import { getCategoryColumns, getCategoryEntries, deleteEntries } from '../db/api.js';
 import { confirmDialog } from './confirm.js';
+import { openFilterPanel, entryPasses, hasActiveFilters } from './filters.js';
 
 const BASE_COLS = [
   { key: 'title',       label: 'title',    type: 'text',   source: 'base' },
@@ -11,6 +12,7 @@ const NOTES_COL = { key: 'notes', label: 'notes', type: 'text', source: 'base' }
 const ICON_SELECT = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M3 6l2 2 3-3"/><path d="M3 13l2 2 3-3"/><line x1="11" y1="6" x2="21" y2="6"/><line x1="11" y1="13" x2="21" y2="13"/><line x1="3" y1="20" x2="21" y2="20"/></svg>`;
 const ICON_CANCEL = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>`;
 const ICON_TRASH = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><line x1="4" y1="6" x2="20" y2="6"/><path d="M6 6v13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><line x1="9.5" y1="3" x2="14.5" y2="3"/><line x1="10" y1="10" x2="10" y2="16"/><line x1="14" y1="10" x2="14" y2="16"/></svg>`;
+const ICON_FILTER = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5"/></svg>`;
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (ch) =>
@@ -33,16 +35,20 @@ export async function renderTable(host, category, { showMessage, onEdit, control
   }
 
   let sort = { key: null, dir: 1 };
+  let filters = {};
   let selectMode = false;
   const selected = new Set();
 
   // Controls live in the toolbar slot and persist across table re-renders.
-  controlsHost.innerHTML = `
+    controlsHost.innerHTML = `
+    <button class="icon-btn" id="filter-btn" title="Filter"><span class="icon-count" id="filter-dot" hidden></span>${ICON_FILTER}</button>
     <button class="icon-btn danger" id="delete-sel" hidden title="Delete selected">
       <span class="icon-count" id="del-count">0</span>${ICON_TRASH}
     </button>
     <button class="icon-btn" id="toggle-select" title="Select rows">${ICON_SELECT}</button>
   `;
+  const filterBtn = controlsHost.querySelector('#filter-btn');
+  const filterDot = controlsHost.querySelector('#filter-dot');
   const toggleBtn = controlsHost.querySelector('#toggle-select');
   const deleteBtn = controlsHost.querySelector('#delete-sel');
   const delCount = controlsHost.querySelector('#del-count');
@@ -86,7 +92,12 @@ export async function renderTable(host, category, { showMessage, onEdit, control
       host.innerHTML = `<div class="table-empty">No entries yet.</div>`;
       return;
     }
-    const rows = [...entries];
+    // (filtered-empty handled after we compute rows, below)
+    let rows = entries.filter((e) => entryPasses(e, columns, filters));
+    if (rows.length === 0) {
+      host.innerHTML = `<div class="table-empty">No entries match the current filter.</div>`;
+      return;
+    }
     if (sort.key) {
       const col = columns.find((c) => c.key === sort.key);
       rows.sort((a, b) => compare(a, b, col));
@@ -149,6 +160,21 @@ export async function renderTable(host, category, { showMessage, onEdit, control
     render();
   });
 
+  function refreshFilterDot() {
+    filterDot.hidden = !hasActiveFilters(columns, filters);
+  }
+  filterBtn.addEventListener('click', () => {
+    openFilterPanel(columns, entries, filters, {
+      onApply: (next) => {
+        filters = next;
+        refreshFilterDot();
+        render();
+        const active = hasActiveFilters(columns, filters);
+        showMessage(active ? 'Filter applied.' : 'Filter cleared.');
+      },
+    });
+  });
+
   deleteBtn.addEventListener('click', async () => {
     if (selected.size === 0) return;
     const n = selected.size;
@@ -171,6 +197,7 @@ export async function renderTable(host, category, { showMessage, onEdit, control
   });
 
   refreshControls();
+  refreshFilterDot();
   render();
   showMessage(`${entries.length} entries in ${category.name}.`);
 }

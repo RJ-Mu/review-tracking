@@ -15,7 +15,7 @@ function escapeHtml(s) {
 }
 
 function inputFor(field, value) {
-  const id = `f_${field.key}`;
+  const id = field.domId;
   if (field.input === 'textarea')
     return `<textarea id="${id}" class="term-input" rows="2">${value != null ? escapeHtml(value) : ''}</textarea>`;
   if (field.type === 'boolean')
@@ -57,6 +57,7 @@ export async function renderEntryForm(container, category, entry, { showMessage,
          : c.data_type === 'boolean' ? 'checkbox' : 'text',
   }));
   const fields = [...BASE_FIELDS.slice(0, 3), ...extraFields, BASE_FIELDS[3]];
+  fields.forEach((f, i) => { f.domId = `f_${i}`; });
 
   const isEdit = entry !== null;
 
@@ -106,7 +107,7 @@ export async function renderEntryForm(container, category, entry, { showMessage,
   });
 
   const readRaw = (f) => {
-    const el = container.querySelector(`#f_${f.key}`);
+    const el = container.querySelector('#' + f.domId);
     return f.type === 'boolean' ? el.checked : el.value;
   };
 

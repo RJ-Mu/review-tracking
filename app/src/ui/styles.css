@@ -290,3 +290,64 @@ select.term-input option { background: var(--bg); color: var(--fg); }
 .col-range .term-input::-webkit-outer-spin-button,
 .col-range .term-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .col-range .term-input { -moz-appearance: textfield; appearance: textfield; }
+
+.rng-dash { color: var(--fg-dim); }
+.bool-row { display: flex; gap: 6px; }
+
+/* --- filter panel (consolidated) --- */
+.filter-box {
+  max-width: 380px; width: 100%; max-height: 82vh;
+  display: flex; flex-direction: column; box-sizing: border-box;
+}
+.filter-head { display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+/* the ONE scroll container: the whole body scrolls, nothing inside it does */
+.filter-body {
+  overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 16px; padding-right: 6px;
+}
+.filter-col { box-sizing: border-box; }
+.filter-col .field-label { margin-bottom: 6px; }
+
+.filter-range { display: flex; align-items: center; gap: 8px; }
+.filter-range .term-input, .filter-range .date-wrap { flex: 1; min-width: 0; }
+.rng-dash { color: var(--fg-dim); flex: none; }
+.bool-row { display: flex; gap: 6px; }
+
+.filter-box .modal-actions { margin-top: 14px; }
+
+/* terminal scrollbar on the body */
+.filter-body::-webkit-scrollbar { width: 10px; }
+.filter-body::-webkit-scrollbar-track { background: var(--bg); border-left: 1px solid var(--fg-dim); }
+.filter-body::-webkit-scrollbar-thumb { background: var(--fg-dim); border: 1px solid var(--bg); box-shadow: inset 0 0 3px rgba(47,255,102,.5); }
+.filter-body::-webkit-scrollbar-thumb:hover { background: var(--fg); }
+.filter-body { scrollbar-width: thin; scrollbar-color: var(--fg-dim) var(--bg); }
+
+/* strip spinners on number range inputs */
+.filter-range .term-input::-webkit-outer-spin-button,
+.filter-range .term-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.filter-range .term-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* text filter: tags + suggestions */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.val-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--fg); background: rgba(47,255,102,.12);
+  padding: 3px 6px 3px 9px; font-size: .8rem; color: var(--fg-bright);
+}
+.tag-x { background: none; border: none; color: var(--fg); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 2px; text-shadow: var(--glow); }
+.tag-x:hover { color: var(--fg-bright); }
+.suggest-list {
+  border: 1px solid var(--fg-dim); border-top: none; max-height: 160px; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.suggest-item {
+  font-family: var(--mono); text-align: left; background: transparent; color: var(--fg);
+  border: none; border-bottom: 1px solid rgba(22,156,60,.25); padding: 9px 10px;
+  cursor: pointer; text-transform: none; text-shadow: var(--glow);
+}
+.suggest-item:hover { background: rgba(47,255,102,.12); color: var(--fg-bright); }
+.suggest-list::-webkit-scrollbar { width: 10px; }
+.suggest-list::-webkit-scrollbar-track { background: var(--bg); }
+.suggest-list::-webkit-scrollbar-thumb { background: var(--fg-dim); box-shadow: inset 0 0 3px rgba(47,255,102,.5); }
+.suggest-list { scrollbar-width: thin; scrollbar-color: var(--fg-dim) var(--bg); }
