@@ -1,4 +1,4 @@
-import { getCategoryColumns, addEntry, updateEntry, getEntry } from '../db/api.js';
+import { getCategoryColumns, addEntry, updateEntry, getEntry, getCategoryEntries } from '../db/api.js';
 import { validateEntry } from '../validate.js';
 
 const BASE_FIELDS = [
@@ -41,13 +41,25 @@ function inputFor(field, value) {
 
 // entry = null  -> add mode.   entry = {...} -> edit mode (pre-filled, diffed).
 export async function renderEntryForm(container, category, entry, { showMessage, onSaved, onCancel }) {
-  let extraCols;
+  let extraCols, existingEntries;
   try {
     extraCols = await getCategoryColumns(category.id);
+    existingEntries = await getCategoryEntries(category.id);
   } catch (err) {
     showMessage('DB error: ' + err.message, 'err');
     return;
   }
+
+  // distinct existing values per text field, for autocomplete suggestions
+  const suggestionsFor = (f) => {
+    if (f.type !== 'text' || f.input === 'textarea') return [];
+    const vals = new Set();
+    for (const e of existingEntries) {
+      const v = f.source === 'base' ? e[f.key] : e.data[f.key];
+      if (v != null && String(v).trim() !== '') vals.add(String(v));
+    }
+    return [...vals].sort((a, b) => a.localeCompare(b));
+  };
 
   const extraFields = extraCols.map((c) => ({
     key: c.name, label: c.name, type: c.data_type, source: 'data', required: false,
@@ -58,6 +70,7 @@ export async function renderEntryForm(container, category, entry, { showMessage,
   }));
   const fields = [...BASE_FIELDS.slice(0, 3), ...extraFields, BASE_FIELDS[3]];
   fields.forEach((f, i) => { f.domId = `f_${i}`; });
+  fields.forEach((f) => { f.suggest = suggestionsFor(f); });
 
   const isEdit = entry !== null;
 
@@ -78,6 +91,8 @@ export async function renderEntryForm(container, category, entry, { showMessage,
         <label class="field">
           <span class="field-label">${escapeHtml(f.label)}${f.required ? ' *' : ''}</span>
           ${inputFor(f, original(f))}
+          ${f.suggest && f.suggest.length
+            ? `<div class="suggest-list ac-list" data-for="${f.domId}" hidden></div>` : ''}
         </label>`).join('')}
       <button class="term-btn submit" type="submit">&gt; ${isEdit ? 'Save Changes' : 'Save Entry'}</button>
     </form>
@@ -104,6 +119,36 @@ export async function renderEntryForm(container, category, entry, { showMessage,
       const input = container.querySelector('#' + btn.dataset.for);
       try { input.showPicker(); } catch { input.focus(); }
     });
+  });
+
+  // entry-form autocomplete on text fields
+  fields.forEach((f) => {
+    if (!f.suggest || !f.suggest.length) return;
+    const input = container.querySelector('#' + f.domId);
+    const list = container.querySelector(`.ac-list[data-for="${f.domId}"]`);
+    if (!input || !list) return;
+
+    const renderSuggest = () => {
+      const q = input.value.trim().toLowerCase();
+      if (q === '') { list.hidden = true; list.innerHTML = ''; return; }
+      const matches = f.suggest
+        .filter((v) => v.toLowerCase().includes(q) && v.toLowerCase() !== q)
+        .slice(0, 20);
+      if (matches.length === 0) { list.hidden = true; list.innerHTML = ''; return; }
+      list.innerHTML = matches.map((v) =>
+        `<button type="button" class="suggest-item" data-val="${escapeHtml(v)}">${escapeHtml(v)}</button>`
+      ).join('');
+      list.hidden = false;
+      list.querySelectorAll('.suggest-item').forEach((b) =>
+        b.addEventListener('click', () => {
+          input.value = b.dataset.val;
+          list.hidden = true; list.innerHTML = '';
+          input.focus();
+        }));
+    };
+    input.addEventListener('input', renderSuggest);
+    // hide list shortly after leaving the field (delay lets a click register first)
+    input.addEventListener('blur', () => setTimeout(() => { list.hidden = true; }, 150));
   });
 
   const readRaw = (f) => {
