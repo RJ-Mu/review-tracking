@@ -8,8 +8,8 @@ install. The aesthetic is a green-phosphor CRT terminal.
 **Live:** https://rj-mu.github.io/review-tracking/
 **Install:** open the link on a phone and "Add to Home Screen" (Android: Chrome · iOS: Safari).
 
-![P1 category list](app/screenshots/screenshot-list.png)
-![P1 table view](app/screenshots/screenshot-table.png)
+![P1 category list](app/screenshots/screenshot-list.jpg)
+![P1 table view](app/screenshots/screenshot-table.jpg)
 
 
 ---
