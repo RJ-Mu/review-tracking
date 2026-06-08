@@ -3,6 +3,7 @@ import { renderTable } from './table.js';
 import { renderEntryForm } from './entry-form.js';
 import { renderCategoryForm } from './category-form.js';
 import { renderDataScreen } from './data-screen.js';
+import { renderCategoryEdit } from './category-edit.js';
 
 let msgEl, contentEl;
 
@@ -100,10 +101,13 @@ async function renderManageList() {
       li.className = 'manage-item' + (cat.is_hidden ? ' hidden-cat' : '');
       li.innerHTML = `
         <span class="mi-name">${cat.name}${cat.is_hidden ? ' <span class="tag">[hidden]</span>' : ''}</span>
-        <button class="term-btn small" data-id="${cat.id}" data-hidden="${cat.is_hidden}">
-          ${cat.is_hidden ? 'Show' : 'Hide'}
-        </button>`;
-      li.querySelector('button').addEventListener('click', async (e) => {
+        <span class="mi-actions">
+          <button class="term-btn small edit-cat" data-id="${cat.id}">Edit</button>
+          <button class="term-btn small toggle-hide" data-id="${cat.id}" data-hidden="${cat.is_hidden}">
+            ${cat.is_hidden ? 'Show' : 'Hide'}
+          </button>
+        </span>`;
+      li.querySelector('.toggle-hide').addEventListener('click', async (e) => {
         const id = Number(e.target.dataset.id);
         const nowHidden = e.target.dataset.hidden === '1' ? 0 : 1;
         try {
@@ -111,6 +115,12 @@ async function renderManageList() {
           showMessage(nowHidden ? 'Category hidden (data kept).' : 'Category shown.');
           renderManageList();
         } catch (err) { showMessage('Failed: ' + err.message, 'err'); }
+      });
+      li.querySelector('.edit-cat').addEventListener('click', () => {
+        renderCategoryEdit(contentEl, { id: cat.id, name: cat.name }, {
+          showMessage,
+          onBack: renderManageList,
+        });
       });
       list.appendChild(li);
     }

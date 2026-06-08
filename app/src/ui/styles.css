@@ -359,3 +359,8 @@ select.term-input option { background: var(--bg); color: var(--fg); }
 
 .modal-actions-col { flex-direction: column; gap: 8px; }
 .modal-actions-col .term-btn { width: 100%; }
+
+/* --- category edit (Phase 8b) --- */
+.mi-actions { display: flex; gap: 6px; flex: none; }
+#col-list .manage-item { gap: 6px; }
+.col-edit-name { min-width: 0; }

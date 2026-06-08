@@ -192,3 +192,42 @@ export async function getCategoryNames() {
   const rows = await query(`SELECT name FROM categories`);
   return rows.map((r) => r.name);
 }
+
+// --- Category editing (Phase 8b) ---
+
+export async function renameCategory(categoryId, newName) {
+  return execute(`UPDATE categories SET name = ? WHERE id = ?`, [newName, categoryId]);
+}
+
+// Rename a column AND migrate every entry's JSON key old->new in this category.
+export async function renameCategoryColumn(categoryId, oldName, newName) {
+  // 1. update the column definition
+  await execute(
+    `UPDATE category_columns SET name = ? WHERE category_id = ? AND name = ?`,
+    [newName, categoryId, oldName]);
+  // 2. migrate data: copy old key to new, then drop old, for rows that have it
+  const oldPath = '$.' + JSON.stringify(oldName);
+  const newPath = '$.' + JSON.stringify(newName);
+  await execute(
+    `UPDATE entries
+       SET data = json_remove(json_set(data, ?, json_extract(data, ?)), ?),
+           updated_at = datetime('now')
+     WHERE category_id = ? AND json_extract(data, ?) IS NOT NULL`,
+    [newPath, oldPath, oldPath, categoryId, oldPath]);
+}
+
+// Remove a column definition only; entry values are left orphaned in the JSON.
+export async function removeCategoryColumn(categoryId, name) {
+  return execute(
+    `DELETE FROM category_columns WHERE category_id = ? AND name = ?`,
+    [categoryId, name]);
+}
+
+// Add a column to an existing category (reuses the insert; position appended).
+export async function appendCategoryColumn(categoryId, name, dataType, minVal = null, maxVal = null) {
+  const posRows = await query(
+    `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM category_columns WHERE category_id = ?`,
+    [categoryId]);
+  const position = posRows[0].next;
+  return addCategoryColumn(categoryId, name, dataType, position, minVal, maxVal);
+}
