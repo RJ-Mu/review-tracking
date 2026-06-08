@@ -257,3 +257,36 @@ table.data tbody tr.row-selected { background: rgba(47,255,102,.14); }
 .modal-box { background: var(--bg); border: 1px solid var(--fg); max-width: 360px; width: 100%; padding: 18px 16px; box-shadow: 0 0 18px rgba(47,255,102,.25); }
 .modal-msg { text-transform: uppercase; letter-spacing: .04em; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* --- category management (Phase 8) --- */
+.term-btn.small { min-height: 34px; padding: 5px 12px; font-size: .76rem; }
+.manage-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 6px 8px; border-bottom: 1px solid rgba(22,156,60,.3); }
+.manage-item .mi-name { text-transform: uppercase; }
+.manage-item.hidden-cat .mi-name { color: var(--fg-dim); }
+.manage-item .tag { color: var(--warn); font-size: .72rem; }
+
+.col-def { border: 1px solid var(--fg-dim); padding: 8px; margin-bottom: 8px; }
+.col-def-main { display: flex; gap: 6px; align-items: stretch; }
+.col-def-main .col-name { flex: 1 1 auto; min-width: 0; }
+.col-def-main .col-type { flex: 0 0 118px; }
+.col-def-main .col-remove {
+  flex: 0 0 40px; width: 40px; font-size: 1.1rem;
+  border: 1px solid var(--fg-dim) !important;   /* override .step-btn border-removal */
+}
+.col-range { display: flex; gap: 6px; margin-top: 6px; }
+.col-range[hidden] { display: none; }
+select.term-input {
+  font-family: var(--mono); text-transform: uppercase;
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232fff66' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+}
+select.term-input option { background: var(--bg); color: var(--fg); }
+
+/* strip native spinners from category min/max fields */
+.col-range .term-input::-webkit-outer-spin-button,
+.col-range .term-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.col-range .term-input { -moz-appearance: textfield; appearance: textfield; }

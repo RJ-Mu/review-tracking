@@ -8,19 +8,19 @@ import { query, execute } from './client.js';
 
 // Ported from add_category, plus parentId for subcategories (null = top
 // level). Uses RETURNING id, same as the Postgres version.
-export async function addCategory(name, parentId = null) {
+export async function addCategory(name) {
   const rows = await query(
-    `INSERT INTO categories (name, parent_id) VALUES (?, ?) RETURNING id`,
-    [name, parentId]
+    `INSERT INTO categories (name) VALUES (?) RETURNING id`,
+    [name]
   );
   return rows[0].id;
 }
 
-export async function addCategoryColumn(categoryId, name, dataType, position = 0) {
+export async function addCategoryColumn(categoryId, name, dataType, position = 0, minVal = null, maxVal = null) {
   const rows = await query(
-    `INSERT INTO category_columns (category_id, name, data_type, position)
-     VALUES (?, ?, ?, ?) RETURNING id`,
-    [categoryId, name, dataType, position]
+    `INSERT INTO category_columns (category_id, name, data_type, position, min_val, max_val)
+     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+    [categoryId, name, dataType, position, minVal, maxVal]
   );
   return rows[0].id;
 }
@@ -40,8 +40,8 @@ export async function getCategoryId(name) {
 export async function getCategories(includeHidden = false) {
   const where = includeHidden ? '' : 'WHERE is_hidden = 0';
   return query(
-    `SELECT id, name, parent_id, is_hidden
-     FROM categories ${where} ORDER BY id`
+    `SELECT id, name, is_hidden
+     FROM categories ${where} ORDER BY name`
   );
 }
 
@@ -56,7 +56,7 @@ export async function setCategoryHidden(categoryId, hidden) {
 // Ported from get_category_columns; ordered by the position field.
 export async function getCategoryColumns(categoryId) {
   return query(
-    `SELECT name, data_type, position
+    `SELECT name, data_type, position, min_val, max_val
      FROM category_columns WHERE category_id = ? ORDER BY position, id`,
     [categoryId]
   );

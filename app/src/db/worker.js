@@ -1,14 +1,14 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { SCHEMA_SQL as schemaSql } from './schema.js';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let db = null;
 
 async function initDb() {
   const sqlite3 = await sqlite3InitModule();
   const poolUtil = await sqlite3.installOpfsSAHPoolVfs({});
-  db = new poolUtil.OpfsSAHPoolDb('/review-v4.sqlite3');
+  db = new poolUtil.OpfsSAHPoolDb('/review-v5.sqlite3');
 
   db.exec('PRAGMA foreign_keys = ON');
 

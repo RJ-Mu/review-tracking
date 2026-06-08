@@ -6,7 +6,7 @@
 // Returns { ok:true, value } with a cleaned, correctly-typed value,
 // or { ok:false, error } with a human-readable reason.
 // Empty input is allowed unless `required` — it becomes null (a clear cell).
-export function validateValue(raw, type, { required = false, label = 'value' } = {}) {
+export function validateValue(raw, type, { required = false, label = 'value', min = null, max = null } = {}) {
   const isBlank =
     raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '');
 
@@ -19,6 +19,8 @@ export function validateValue(raw, type, { required = false, label = 'value' } =
     case 'number': {
       const n = typeof raw === 'number' ? raw : Number(String(raw).trim());
       if (!Number.isFinite(n)) return { ok: false, error: `${label} must be a number.` };
+      if (min != null && n < min) return { ok: false, error: `${label} must be ≥ ${min}.` };
+      if (max != null && n > max) return { ok: false, error: `${label} must be ≤ ${max}.` };
       return { ok: true, value: n };
     }
     case 'boolean': {
@@ -52,10 +54,11 @@ export function validateEntry(fields, rawValues) {
   const errors = [];
   const base = {};
   const data = {};
+  
 
   for (const f of fields) {
     const res = validateValue(rawValues[f.key], f.type, {
-      required: f.required, label: f.label,
+      required: f.required, label: f.label, min: f.min, max: f.max,
     });
     if (!res.ok) { errors.push(res.error); continue; }
     if (f.source === 'base') base[f.key] = res.value;

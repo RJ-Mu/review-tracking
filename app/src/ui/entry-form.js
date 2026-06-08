@@ -23,9 +23,9 @@ function inputFor(field, value) {
   if (field.input === 'number') {
     const v = value != null ? ` value="${escapeHtml(value)}"` : '';
     return `<div class="num-stepper">
-      <button type="button" class="step-btn" data-step="-0.5" tabindex="-1">&minus;</button>
+      <button type="button" class="step-btn" data-step="-1" tabindex="-1">&minus;</button>
       <input id="${id}" class="term-input num-input" type="number" step="any" inputmode="decimal"${v} />
-      <button type="button" class="step-btn" data-step="0.5" tabindex="-1">+</button>
+      <button type="button" class="step-btn" data-step="1" tabindex="-1">+</button>
     </div>`;
   }
   if (field.input === 'date') {
@@ -51,6 +51,7 @@ export async function renderEntryForm(container, category, entry, { showMessage,
 
   const extraFields = extraCols.map((c) => ({
     key: c.name, label: c.name, type: c.data_type, source: 'data', required: false,
+    min: c.min_val, max: c.max_val,
     input: c.data_type === 'number' ? 'number'
          : c.data_type === 'date'   ? 'date'
          : c.data_type === 'boolean' ? 'checkbox' : 'text',
