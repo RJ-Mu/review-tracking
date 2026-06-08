@@ -1,27 +1,46 @@
-import { getCategoryColumns, addEntry } from '../db/api.js';
+import { getCategoryColumns, addEntry, updateEntry, getEntry } from '../db/api.js';
 import { validateEntry } from '../validate.js';
 
-// Base fields shown in the add form. title required; rating/notes/date optional.
 const BASE_FIELDS = [
   { key: 'title',       label: 'Title',    type: 'text',   source: 'base', required: true,  input: 'text' },
   { key: 'rating',      label: 'Rating',   type: 'number', source: 'base', required: false, input: 'number' },
   { key: 'reviewed_on', label: 'Reviewed', type: 'date',   source: 'base', required: false, input: 'date' },
   { key: 'notes',       label: 'Notes',    type: 'text',   source: 'base', required: false, input: 'textarea' },
 ];
+const ICON_CALENDAR = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="3" y="4.5" width="18" height="16.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/></svg>`;
 
-function inputFor(field) {
-  const id = `f_${field.key}`;
-  if (field.input === 'textarea')
-    return `<textarea id="${id}" class="term-input" rows="2"></textarea>`;
-  if (field.type === 'boolean')
-    return `<input id="${id}" class="term-check" type="checkbox" />`;
-  const t = field.input === 'number' ? 'number'
-          : field.input === 'date'   ? 'date' : 'text';
-  const step = field.input === 'number' ? ' step="any"' : '';
-  return `<input id="${id}" class="term-input" type="${t}"${step} />`;
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (ch) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
-export async function renderAddForm(container, category, { showMessage, onSaved, onCancel }) {
+function inputFor(field, value) {
+  const id = `f_${field.key}`;
+  if (field.input === 'textarea')
+    return `<textarea id="${id}" class="term-input" rows="2">${value != null ? escapeHtml(value) : ''}</textarea>`;
+  if (field.type === 'boolean')
+    return `<input id="${id}" class="term-check" type="checkbox" ${value ? 'checked' : ''} />`;
+  if (field.input === 'number') {
+    const v = value != null ? ` value="${escapeHtml(value)}"` : '';
+    return `<div class="num-stepper">
+      <button type="button" class="step-btn" data-step="-0.5" tabindex="-1">&minus;</button>
+      <input id="${id}" class="term-input num-input" type="number" step="any" inputmode="decimal"${v} />
+      <button type="button" class="step-btn" data-step="0.5" tabindex="-1">+</button>
+    </div>`;
+  }
+  if (field.input === 'date') {
+    const v = value != null ? ` value="${escapeHtml(value)}"` : '';
+    return `<div class="date-wrap">
+      <input id="${id}" class="term-input date-input" type="date"${v} />
+      <button type="button" class="date-icon" data-for="${id}" tabindex="-1" aria-label="Open calendar">${ICON_CALENDAR}</button>
+    </div>`;
+  }
+  const v = value != null ? ` value="${escapeHtml(value)}"` : '';
+  return `<input id="${id}" class="term-input" type="text"${v} />`;
+}
+
+// entry = null  -> add mode.   entry = {...} -> edit mode (pre-filled, diffed).
+export async function renderEntryForm(container, category, entry, { showMessage, onSaved, onCancel }) {
   let extraCols;
   try {
     extraCols = await getCategoryColumns(category.id);
@@ -30,36 +49,64 @@ export async function renderAddForm(container, category, { showMessage, onSaved,
     return;
   }
 
-  // category extras map to data-bag fields, between rating/date and notes.
   const extraFields = extraCols.map((c) => ({
-    key: c.name, label: c.name, type: c.data_type, source: 'data',
-    required: false, input: c.data_type === 'number' ? 'number'
-                          : c.data_type === 'date'   ? 'date'
-                          : c.data_type === 'boolean' ? 'checkbox' : 'text',
+    key: c.name, label: c.name, type: c.data_type, source: 'data', required: false,
+    input: c.data_type === 'number' ? 'number'
+         : c.data_type === 'date'   ? 'date'
+         : c.data_type === 'boolean' ? 'checkbox' : 'text',
   }));
   const fields = [...BASE_FIELDS.slice(0, 3), ...extraFields, BASE_FIELDS[3]];
+
+  const isEdit = entry !== null;
+
+  // original value of a field, normalised for the input (base col vs data bag).
+  const original = (f) => {
+    if (!isEdit) return null;
+    const v = f.source === 'base' ? entry[f.key] : entry.data[f.key];
+    return v === undefined ? null : v;
+  };
 
   container.innerHTML = `
     <div class="table-head">
       <button class="term-btn" id="cancel">&lt; Cancel</button>
-      <span class="name">New // ${escapeHtml(category.name)}</span>
+      <span class="name">${isEdit ? 'Edit' : 'New'} // ${escapeHtml(category.name)}</span>
     </div>
     <form class="entry-form" id="entry-form" novalidate>
       ${fields.map((f) => `
         <label class="field">
           <span class="field-label">${escapeHtml(f.label)}${f.required ? ' *' : ''}</span>
-          ${inputFor(f)}
+          ${inputFor(f, original(f))}
         </label>`).join('')}
-      <button class="term-btn submit" type="submit">&gt; Save Entry</button>
+      <button class="term-btn submit" type="submit">&gt; ${isEdit ? 'Save Changes' : 'Save Entry'}</button>
     </form>
   `;
 
   container.querySelector('#cancel').addEventListener('click', onCancel);
+  // number steppers: ±0.5 per tap, rounded to kill float drift, clamped at 0
+  container.querySelectorAll('.num-stepper').forEach((stepper) => {
+    const input = stepper.querySelector('.num-input');
+    stepper.querySelectorAll('.step-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const delta = parseFloat(btn.dataset.step);
+        const cur = input.value.trim() === '' ? 0 : parseFloat(input.value);
+        const base = Number.isFinite(cur) ? cur : 0;
+        let next = Math.round((base + delta) * 100) / 100;
+        if (next < 0) next = 0;
+        input.value = next;
+      });
+    });
+  });
+  // custom calendar icon opens the native picker programmatically
+  container.querySelectorAll('.date-icon').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = container.querySelector('#' + btn.dataset.for);
+      try { input.showPicker(); } catch { input.focus(); }
+    });
+  });
 
   const readRaw = (f) => {
     const el = container.querySelector(`#f_${f.key}`);
-    if (f.type === 'boolean') return el.checked;
-    return el.value;
+    return f.type === 'boolean' ? el.checked : el.value;
   };
 
   container.querySelector('#entry-form').addEventListener('submit', async (e) => {
@@ -71,25 +118,33 @@ export async function renderAddForm(container, category, { showMessage, onSaved,
     if (!result.ok) { showMessage(result.errors.join(' '), 'err'); return; }
 
     try {
-      const { base, data } = result;
-      await addEntry(
-        category.id,
-        base.title,
-        base.rating ?? null,
-        base.notes ?? null,
-        base.reviewed_on ?? null,
-        data
-      );
-      showMessage(`Saved: ${base.title}.`);
+      if (!isEdit) {
+        const { base, data } = result;
+        await addEntry(category.id, base.title, base.rating ?? null,
+                       base.notes ?? null, base.reviewed_on ?? null, data);
+        showMessage(`Saved: ${base.title}.`);
+        onSaved();
+        return;
+      }
+
+      // EDIT: diff each field's cleaned value against the original; write only changes.
+      let changes = 0;
+      for (const f of fields) {
+        const res = validateEntry([f], raw);   // reuse the same coercion per field
+        const newVal = f.source === 'base' ? (res.base[f.key] ?? null)
+                                           : (res.data[f.key] ?? null);
+        const oldVal = original(f);
+        // normalise both sides for comparison (null vs '' vs number)
+        const norm = (v) => (v === undefined || v === '' ? null : v);
+        if (norm(newVal) !== norm(oldVal)) {
+          await updateEntry(entry.id, f.key, newVal);  // null clears the cell (req 6.2)
+          changes++;
+        }
+      }
+      showMessage(changes ? `Updated ${changes} field${changes > 1 ? 's' : ''}.` : 'No changes.');
       onSaved();
     } catch (err) {
-      // surfaces DB-level errors too, e.g. the rating 0–10 CHECK.
       showMessage('Save failed: ' + err.message, 'err');
     }
   });
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (ch) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }

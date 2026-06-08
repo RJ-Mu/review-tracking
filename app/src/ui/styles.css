@@ -174,3 +174,86 @@ textarea.term-input { resize: vertical; min-height: 56px; }
 .term-check { width: 22px; height: 22px; accent-color: var(--fg); align-self: flex-start; }
 .term-btn.submit { margin-top: 4px; align-self: flex-start; }
 .fab-row { display: flex; gap: 10px; margin: 12px 0 4px; }
+
+/* --- select / delete (Phase 7b) --- */
+.select-bar { display: flex; gap: 10px; margin-bottom: 10px; }
+.term-btn.danger { border-color: var(--err); color: var(--err); text-shadow: 0 0 4px rgba(255,92,77,.4); }
+.term-btn.danger:hover:not(:disabled) { background: rgba(255,92,77,.12); }
+.term-btn.danger:disabled { opacity: .4; cursor: not-allowed; }
+table.data td.sel-col, table.data th.sel-col { width: 34px; text-align: center; padding: 4px; }
+table.data tbody tr { cursor: pointer; }
+table.data tbody tr.row-selected { background: rgba(47,255,102,.14); }
+.row-check { width: 20px; height: 20px; }
+
+/* --- toolbar + icon buttons (Phase 7b refinement) --- */
+.cat-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 12px 0 4px; flex-wrap: wrap; }
+.tb-left { display: flex; gap: 10px; }
+.tb-right { display: flex; gap: 8px; align-items: center; }
+
+.icon-btn {
+  font-family: var(--mono); background: transparent; color: var(--fg);
+  border: 1px solid var(--fg-dim); width: 42px; height: 42px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; text-shadow: var(--glow);
+}
+.icon-btn svg { filter: drop-shadow(0 0 3px rgba(47,255,102,.5)); }
+.icon-btn:hover, .icon-btn.active { background: rgba(47,255,102,.12); border-color: var(--fg); color: var(--fg-bright); }
+.icon-btn.danger { color: var(--err); border-color: var(--err); }
+.icon-btn.danger svg { filter: drop-shadow(0 0 3px rgba(255,92,77,.5)); }
+.icon-btn.danger:hover:not(:disabled) { background: rgba(255,92,77,.14); }
+.icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+.icon-count {
+  position: absolute; top: -8px; left: -8px; min-width: 18px; height: 18px; padding: 0 3px;
+  border: 1px solid var(--err); background: var(--bg); color: var(--err);
+  font-size: .68rem; line-height: 16px; text-align: center;
+}
+
+/* --- number stepper --- */
+.num-stepper { display: flex; align-items: stretch; }
+.num-input { text-align: center; border-left: 1px solid var(--fg-dim) !important; border-right: 1px solid var(--fg-dim) !important; }
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.num-input { -moz-appearance: textfield; appearance: textfield; }
+.step-btn {
+  font-family: var(--mono); background: transparent; color: var(--fg);
+  border: 1px solid var(--fg-dim); width: 44px; min-height: 44px; font-size: 1.2rem;
+  cursor: pointer; text-shadow: var(--glow); user-select: none; flex: none;
+}
+.step-btn:first-child { border-right: none; }
+.step-btn:last-child  { border-left: none; }
+.step-btn:hover, .step-btn:active { background: rgba(47,255,102,.12); color: var(--fg-bright); }
+
+/* --- date trigger --- */
+.date-wrap { position: relative; display: flex; }
+.date-input { width: 100%; padding-right: 44px; }
+.date-input::-webkit-calendar-picker-indicator { opacity: 0; display: none; }
+.date-icon {
+  position: absolute; right: 0; top: 0; height: 100%; width: 42px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--fg); cursor: pointer; text-shadow: var(--glow);
+}
+.date-icon svg { filter: drop-shadow(0 0 3px rgba(47,255,102,.5)); }
+.date-icon:hover { color: var(--fg-bright); }
+
+/* --- terminal checkboxes (form booleans + row select) --- */
+.term-check, .row-check {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 22px; height: 22px; border: 1px solid var(--fg-dim); background: rgba(47,255,102,.04);
+  cursor: pointer; position: relative; flex: none; vertical-align: middle;
+}
+.term-check { align-self: flex-start; }
+.row-check { pointer-events: none; }   /* row click handles toggling; box is the indicator */
+.term-check:hover { border-color: var(--fg); }
+.term-check:checked, .row-check:checked {
+  background: rgba(47,255,102,.18); border-color: var(--fg); box-shadow: inset 0 0 5px rgba(47,255,102,.4);
+}
+.term-check:checked::after, .row-check:checked::after {
+  content: ''; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px;
+  border: solid var(--fg-bright); border-width: 0 2px 2px 0; transform: rotate(40deg); box-shadow: var(--glow);
+}
+
+/* --- modal confirm --- */
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); padding: 20px; }
+.modal-box { background: var(--bg); border: 1px solid var(--fg); max-width: 360px; width: 100%; padding: 18px 16px; box-shadow: 0 0 18px rgba(47,255,102,.25); }
+.modal-msg { text-transform: uppercase; letter-spacing: .04em; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }

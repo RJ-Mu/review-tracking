@@ -1,0 +1,36 @@
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (ch) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+// Returns a Promise<boolean>: true = confirmed, false = cancelled.
+export function confirmDialog(message, { confirmLabel = 'Confirm', cancelLabel = 'Cancel' } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-box" role="dialog" aria-modal="true">
+        <div class="modal-msg">${escapeHtml(message)}</div>
+        <div class="modal-actions">
+          <button class="term-btn" data-act="cancel">${escapeHtml(cancelLabel)}</button>
+          <button class="term-btn danger" data-act="confirm">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = (val) => {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      else if (e.key === 'Enter') close(true);
+    };
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => close(false));
+    overlay.querySelector('[data-act="confirm"]').addEventListener('click', () => close(true));
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('[data-act="confirm"]').focus();
+  });
+}

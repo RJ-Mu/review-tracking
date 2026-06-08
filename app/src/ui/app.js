@@ -1,6 +1,6 @@
 import { getCategories, addCategory, addCategoryColumn, addEntry } from '../db/api.js';
 import { renderTable } from './table.js';
-import { renderAddForm } from './entry-form.js';
+import { renderEntryForm } from './entry-form.js';
 
 let msgEl, contentEl;
 
@@ -43,23 +43,29 @@ function catRow(cat, isSub) {
 
 function openCategory(cat) {
   contentEl.innerHTML = `
-    <div class="fab-row">
-      <button class="term-btn" id="back-cats">&lt; Categories</button>
-      <button class="term-btn" id="new-entry">+ New Entry</button>
+    <div class="cat-toolbar">
+      <div class="tb-left">
+        <button class="term-btn" id="back-cats">&lt; Categories</button>
+        <button class="term-btn" id="new-entry">+ New Entry</button>
+      </div>
+      <div class="tb-right" id="tb-right"></div>
     </div>
     <div id="table-host"></div>
   `;
+  const tbRight = contentEl.querySelector('#tb-right');
+  const tableHost = contentEl.querySelector('#table-host');
   contentEl.querySelector('#back-cats').addEventListener('click', renderCategoryList);
   contentEl.querySelector('#new-entry').addEventListener('click', () => {
-    renderAddForm(contentEl, cat, {
-      showMessage,
-      onSaved:  () => openCategory(cat),   // back to the table, now with the new row
-      onCancel: () => openCategory(cat),
+    renderEntryForm(contentEl, cat, null, {
+      showMessage, onSaved: () => openCategory(cat), onCancel: () => openCategory(cat),
     });
   });
-  renderTable(contentEl.querySelector('#table-host'), cat, {
+  renderTable(tableHost, cat, {
     showMessage,
-    onBack: renderCategoryList,
+    onEdit: (entry) => renderEntryForm(contentEl, cat, entry, {
+      showMessage, onSaved: () => openCategory(cat), onCancel: () => openCategory(cat),
+    }),
+    controlsHost: tbRight,
   });
 }
 
