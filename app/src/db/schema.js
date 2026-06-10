@@ -35,4 +35,9 @@ CREATE INDEX IF NOT EXISTS idx_entries_category ON entries (category_id);
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
 `;

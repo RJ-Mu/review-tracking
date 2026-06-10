@@ -9,57 +9,52 @@ import { query, execute } from './client.js';
 // Ported from add_category, plus parentId for subcategories (null = top
 // level). Uses RETURNING id, same as the Postgres version.
 export async function addCategory(name) {
-  const rows = await query(
-    `INSERT INTO categories (name) VALUES (?) RETURNING id`,
-    [name]
-  );
-  return rows[0].id;
+    const rows = await query(
+        `INSERT INTO categories (name) VALUES (?) RETURNING id`, [name]
+    );
+    return rows[0].id;
 }
 
 export async function addCategoryColumn(categoryId, name, dataType, position = 0, minVal = null, maxVal = null) {
-  const rows = await query(
-    `INSERT INTO category_columns (category_id, name, data_type, position, min_val, max_val)
-     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-    [categoryId, name, dataType, position, minVal, maxVal]
-  );
-  return rows[0].id;
+    const rows = await query(
+        `INSERT INTO category_columns (category_id, name, data_type, position, min_val, max_val)
+     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`, [categoryId, name, dataType, position, minVal, maxVal]
+    );
+    return rows[0].id;
 }
 
 // Ported from get_category_id. Names are now unique per-parent, not
 // globally, so this returns the first match; the UI uses ids directly.
 export async function getCategoryId(name) {
-  const rows = await query(
-    `SELECT id FROM categories WHERE name = ? LIMIT 1`,
-    [name]
-  );
-  return rows.length ? rows[0].id : null;
+    const rows = await query(
+        `SELECT id FROM categories WHERE name = ? LIMIT 1`, [name]
+    );
+    return rows.length ? rows[0].id : null;
 }
 
 // Ported from get_categories. Now returns parent_id + is_hidden so the UI
 // can build the tree, and hides hidden categories unless asked.
 export async function getCategories(includeHidden = false) {
-  const where = includeHidden ? '' : 'WHERE is_hidden = 0';
-  return query(
-    `SELECT id, name, is_hidden
+    const where = includeHidden ? '' : 'WHERE is_hidden = 0';
+    return query(
+        `SELECT id, name, is_hidden
      FROM categories ${where} ORDER BY name`
-  );
+    );
 }
 
 // New (req 7.3): hide/show a category without deleting its data.
 export async function setCategoryHidden(categoryId, hidden) {
-  return execute(
-    `UPDATE categories SET is_hidden = ? WHERE id = ?`,
-    [hidden ? 1 : 0, categoryId]
-  );
+    return execute(
+        `UPDATE categories SET is_hidden = ? WHERE id = ?`, [hidden ? 1 : 0, categoryId]
+    );
 }
 
 // Ported from get_category_columns; ordered by the position field.
 export async function getCategoryColumns(categoryId) {
-  return query(
-    `SELECT name, data_type, position, min_val, max_val
-     FROM category_columns WHERE category_id = ? ORDER BY position, id`,
-    [categoryId]
-  );
+    return query(
+        `SELECT name, data_type, position, min_val, max_val
+     FROM category_columns WHERE category_id = ? ORDER BY position, id`, [categoryId]
+    );
 }
 
 // --- Entries -------------------------------------------------------------
@@ -68,35 +63,33 @@ export async function getCategoryColumns(categoryId) {
 // plain JS object of the category-specific values; JSON.stringify is the
 // JS equivalent of json.dumps for the TEXT 'data' column.
 export async function addEntry(categoryId, title, rating, notes, reviewedOn, data = {}) {
-  const rows = await query(
-    `INSERT INTO entries (category_id, title, rating, notes, reviewed_on, data)
-     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-    [categoryId, title, rating, notes, reviewedOn, JSON.stringify(data)]
-  );
-  return rows[0].id;
+    const rows = await query(
+        `INSERT INTO entries (category_id, title, rating, notes, reviewed_on, data)
+     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`, [categoryId, title, rating, notes, reviewedOn, JSON.stringify(data)]
+    );
+    return rows[0].id;
 }
 
 // Ported from get_entry. SQLite returns 'data' as a TEXT string, so unlike
 // Postgres JSONB (which psycopg2 auto-parsed) we JSON.parse it ourselves.
 export async function getEntry(entryId) {
-  const rows = await query(`SELECT * FROM entries WHERE id = ?`, [entryId]);
-  if (!rows.length) return null;
-  const entry = rows[0];
-  entry.data = JSON.parse(entry.data);
-  return entry;
+    const rows = await query(`SELECT * FROM entries WHERE id = ?`, [entryId]);
+    if (!rows.length) return null;
+    const entry = rows[0];
+    entry.data = JSON.parse(entry.data);
+    return entry;
 }
 
 // Ported from get_category_entries. 'NOT is_hidden' becomes 'is_hidden = 0';
 // data parsed per row.
 export async function getCategoryEntries(categoryId) {
-  const rows = await query(
-    `SELECT id, title, rating, notes, reviewed_on, data
+    const rows = await query(
+        `SELECT id, title, rating, notes, reviewed_on, data
      FROM entries
      WHERE category_id = ? AND is_hidden = 0
-     ORDER BY id`,
-    [categoryId]
-  );
-  return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
+     ORDER BY id`, [categoryId]
+    );
+    return rows.map((r) => ({...r, data: JSON.parse(r.data) }));
 }
 
 const BASE_COLUMNS = ['title', 'rating', 'notes', 'reviewed_on', 'is_hidden'];
@@ -104,7 +97,7 @@ const BASE_COLUMNS = ['title', 'rating', 'notes', 'reviewed_on', 'is_hidden'];
 // Build a safe JSON path for a key, e.g. 'year' -> $."year".
 // JSON.stringify quotes and escapes the key so spaces/quotes can't break it.
 function jsonPath(key) {
-  return '$.' + JSON.stringify(key);
+    return '$.' + JSON.stringify(key);
 }
 
 // Ported from update_entry — the important one. A base column is a real
@@ -115,119 +108,141 @@ function jsonPath(key) {
 // (the Postgres version didn't — this is the small fix that keeps updated_at
 // honest for the future sync layer).
 export async function updateEntry(entryId, columnName, value) {
-  if (BASE_COLUMNS.includes(columnName)) {
-    return execute(
-      `UPDATE entries SET ${columnName} = ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      [value, entryId]
-    );
-  }
+    if (BASE_COLUMNS.includes(columnName)) {
+        return execute(
+            `UPDATE entries SET ${columnName} = ?, updated_at = datetime('now')
+       WHERE id = ?`, [value, entryId]
+        );
+    }
 
-  // Not a base column: is it a valid category column for THIS entry's category?
-  const cols = await query(
-    `SELECT cc.name
+    // Not a base column: is it a valid category column for THIS entry's category?
+    const cols = await query(
+        `SELECT cc.name
      FROM category_columns cc
      JOIN entries e ON e.category_id = cc.category_id
-     WHERE e.id = ?`,
-    [entryId]
-  );
-  const valid = cols.map((c) => c.name);
-
-  if (valid.includes(columnName)) {
-    return execute(
-      `UPDATE entries
-       SET data = json_set(data, ?, ?), updated_at = datetime('now')
-       WHERE id = ?`,
-      [jsonPath(columnName), value, entryId]
+     WHERE e.id = ?`, [entryId]
     );
-  }
+    const valid = cols.map((c) => c.name);
 
-  throw new Error(`Unknown column: ${columnName}`);
+    if (valid.includes(columnName)) {
+        return execute(
+            `UPDATE entries
+       SET data = json_set(data, ?, ?), updated_at = datetime('now')
+       WHERE id = ?`, [jsonPath(columnName), value, entryId]
+        );
+    }
+
+    throw new Error(`Unknown column: ${columnName}`);
 }
 
 // Ported from delete_entry.
 export async function deleteEntry(entryId) {
-  return execute(`DELETE FROM entries WHERE id = ?`, [entryId]);
+    return execute(`DELETE FROM entries WHERE id = ?`, [entryId]);
 }
 
 // New (req 6.1.1): delete several rows at once.
 export async function deleteEntries(ids) {
-  if (!ids.length) return 0;
-  const placeholders = ids.map(() => '?').join(', ');
-  return execute(`DELETE FROM entries WHERE id IN (${placeholders})`, ids);
+    if (!ids.length) return 0;
+    const placeholders = ids.map(() => '?').join(', ');
+    return execute(`DELETE FROM entries WHERE id IN (${placeholders})`, ids);
 }
 
 // --- Export / import / reset (Phase 10) ---
 
 // Full dump for export: categories + their columns, and all entries (incl. hidden).
 export async function exportAll() {
-  const cats = await query(`SELECT id, name, is_hidden FROM categories ORDER BY id`);
-  const categories = [];
-  for (const c of cats) {
-    const cols = await query(
-      `SELECT name, data_type, position, min_val, max_val
+    const cats = await query(`SELECT id, name, is_hidden FROM categories ORDER BY id`);
+    const categories = [];
+    for (const c of cats) {
+        const cols = await query(
+            `SELECT name, data_type, position, min_val, max_val
        FROM category_columns WHERE category_id = ? ORDER BY position, id`, [c.id]);
-    categories.push({ name: c.name, is_hidden: c.is_hidden, columns: cols });
-  }
-  const rawEntries = await query(
-    `SELECT e.title, e.rating, e.notes, e.reviewed_on, e.is_hidden, e.data, c.name AS category
+        categories.push({ name: c.name, is_hidden: c.is_hidden, columns: cols });
+    }
+    const rawEntries = await query(
+        `SELECT e.title, e.rating, e.notes, e.reviewed_on, e.is_hidden, e.data, c.name AS category
      FROM entries e JOIN categories c ON c.id = e.category_id ORDER BY e.id`);
-  const entries = rawEntries.map((e) => ({
-    category: e.category, title: e.title, rating: e.rating, notes: e.notes,
-    reviewed_on: e.reviewed_on, is_hidden: e.is_hidden, data: JSON.parse(e.data),
-  }));
-  return { format: 'review-terminal-export', version: 1,
-           exported_at: new Date().toISOString(), categories, entries };
+    const entries = rawEntries.map((e) => ({
+        category: e.category,
+        title: e.title,
+        rating: e.rating,
+        notes: e.notes,
+        reviewed_on: e.reviewed_on,
+        is_hidden: e.is_hidden,
+        data: JSON.parse(e.data),
+    }));
+    return {
+        format: 'review-terminal-export',
+        version: 1,
+        exported_at: new Date().toISOString(),
+        categories,
+        entries
+    };
 }
 
 // Wipe all data (req 11.1). Order respects foreign keys.
 export async function resetAll() {
-  await execute(`DELETE FROM entries`);
-  await execute(`DELETE FROM category_columns`);
-  await execute(`DELETE FROM categories`);
+    await execute(`DELETE FROM entries`);
+    await execute(`DELETE FROM category_columns`);
+    await execute(`DELETE FROM categories`);
 }
 
 // Look up existing category names (for merge collision handling).
 export async function getCategoryNames() {
-  const rows = await query(`SELECT name FROM categories`);
-  return rows.map((r) => r.name);
+    const rows = await query(`SELECT name FROM categories`);
+    return rows.map((r) => r.name);
 }
 
 // --- Category editing (Phase 8b) ---
 
 export async function renameCategory(categoryId, newName) {
-  return execute(`UPDATE categories SET name = ? WHERE id = ?`, [newName, categoryId]);
+    return execute(`UPDATE categories SET name = ? WHERE id = ?`, [newName, categoryId]);
 }
 
 // Rename a column AND migrate every entry's JSON key old->new in this category.
 export async function renameCategoryColumn(categoryId, oldName, newName) {
-  // 1. update the column definition
-  await execute(
-    `UPDATE category_columns SET name = ? WHERE category_id = ? AND name = ?`,
-    [newName, categoryId, oldName]);
-  // 2. migrate data: copy old key to new, then drop old, for rows that have it
-  const oldPath = '$.' + JSON.stringify(oldName);
-  const newPath = '$.' + JSON.stringify(newName);
-  await execute(
-    `UPDATE entries
+    // 1. update the column definition
+    await execute(
+        `UPDATE category_columns SET name = ? WHERE category_id = ? AND name = ?`, [newName, categoryId, oldName]);
+    // 2. migrate data: copy old key to new, then drop old, for rows that have it
+    const oldPath = '$.' + JSON.stringify(oldName);
+    const newPath = '$.' + JSON.stringify(newName);
+    await execute(
+        `UPDATE entries
        SET data = json_remove(json_set(data, ?, json_extract(data, ?)), ?),
            updated_at = datetime('now')
-     WHERE category_id = ? AND json_extract(data, ?) IS NOT NULL`,
-    [newPath, oldPath, oldPath, categoryId, oldPath]);
+     WHERE category_id = ? AND json_extract(data, ?) IS NOT NULL`, [newPath, oldPath, oldPath, categoryId, oldPath]);
 }
 
 // Remove a column definition only; entry values are left orphaned in the JSON.
 export async function removeCategoryColumn(categoryId, name) {
-  return execute(
-    `DELETE FROM category_columns WHERE category_id = ? AND name = ?`,
-    [categoryId, name]);
+    return execute(
+        `DELETE FROM category_columns WHERE category_id = ? AND name = ?`, [categoryId, name]);
 }
 
 // Add a column to an existing category (reuses the insert; position appended).
 export async function appendCategoryColumn(categoryId, name, dataType, minVal = null, maxVal = null) {
-  const posRows = await query(
-    `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM category_columns WHERE category_id = ?`,
-    [categoryId]);
-  const position = posRows[0].next;
-  return addCategoryColumn(categoryId, name, dataType, position, minVal, maxVal);
+    const posRows = await query(
+        `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM category_columns WHERE category_id = ?`, [categoryId]);
+    const position = posRows[0].next;
+    return addCategoryColumn(categoryId, name, dataType, position, minVal, maxVal);
+}
+
+// --- Settings (Phase 3b) ---
+export async function getSetting(key, fallback = null) {
+    const rows = await query(`SELECT value FROM settings WHERE key = ?`, [key]);
+    return rows.length ? rows[0].value : fallback;
+}
+
+export async function setSetting(key, value) {
+    return execute(
+        `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [key, String(value)]);
+}
+
+export async function getAllSettings() {
+    const rows = await query(`SELECT key, value FROM settings`);
+    const out = {};
+    for (const r of rows) out[r.key] = r.value;
+    return out;
 }

@@ -1,4 +1,4 @@
-import { getCategories, setCategoryHidden } from '../db/api.js';
+import { getCategories, setCategoryHidden, getSetting } from '../db/api.js';
 import { renderTable } from './table.js';
 import { renderEntryForm } from './entry-form.js';
 import { renderCategoryForm } from './category-form.js';
@@ -12,6 +12,13 @@ let msgEl, contentEl;
 function escapeCat(s) {
     return String(s).replace(/[&<>"']/g, (ch) =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+export async function applySettings() {
+    const theme = await getSetting('theme', 'green');
+    document.body.setAttribute('data-theme', theme);
+    const crt = await getSetting('crt', 'on');
+    document.body.classList.toggle('no-crt', crt === 'off');
 }
 
 export function initApp() {
@@ -32,7 +39,7 @@ export function initApp() {
     msgEl = document.querySelector('#msg-strip');
     contentEl = document.querySelector('#content');
     document.querySelector('#menu-btn').addEventListener('click', openMenu);
-    renderCategoryList();
+    applySettings().then(renderCategoryList);
 }
 
 function showMessage(text, type = 'info') {
