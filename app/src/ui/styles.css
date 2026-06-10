@@ -260,9 +260,10 @@ table.data td {
     border: 1px solid var(--fg-dim);
     padding: 7px 10px;
     text-align: left;
-    white-space: nowrap;
-    /* cells never wrap -> columns hold width -> h-scroll */
     text-transform: uppercase;
+    max-width: 400px;
+    overflow-wrap: break-word;
+    vertical-align: top;
 }
 
 table.data th {
@@ -1255,4 +1256,27 @@ body {
 
 .field .ac-list {
     margin-top: -5px;
+}
+
+.cat-title {
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--fg-bright);
+    font-size: .95rem;
+    margin: 4px 0 10px;
+}
+
+.data-screen {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 210px);
+}
+
+.data-reset {
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+.data-reset .term-btn {
+    width: 100%;
 }

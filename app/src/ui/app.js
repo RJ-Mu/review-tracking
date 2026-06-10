@@ -9,6 +9,11 @@ import { renderPreferencesScreen } from './preferences-screen.js';
 
 let msgEl, contentEl;
 
+function escapeCat(s) {
+    return String(s).replace(/[&<>"']/g, (ch) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
 export function initApp() {
     const app = document.querySelector('#app');
     app.innerHTML = `
@@ -138,6 +143,7 @@ function openNewCategory() {
 
 function openCategory(cat) {
     contentEl.innerHTML = `
+    <div class="cat-title">// ${escapeCat(cat.name)}</div>
     <div class="cat-toolbar">
       <div class="tb-left">
         <button class="term-btn" id="back-cats">&lt; Categories</button>
