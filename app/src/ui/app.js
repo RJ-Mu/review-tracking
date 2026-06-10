@@ -80,6 +80,7 @@ async function renderCategoryList() {
         }
         for (const cat of cats) list.appendChild(catRow(cat));
         showMessage(`${cats.length} categories loaded.`);
+        maybeShowBackupBanner(contentEl);
     } catch (err) {
         showMessage('DB error: ' + err.message, 'err');
     }
@@ -231,4 +232,45 @@ function goTo(dest) {
         return renderPreferencesScreen(contentEl, { onBack: renderCategoryList });
     if (dest === 'help')
         return renderHelpScreen(contentEl, { onBack: renderCategoryList });
+}
+
+async function maybeShowBackupBanner(container) {
+    const days = parseInt(await getSetting('backup_days', '14'), 10);
+    if (!days || days <= 0) return; // 0 = reminders off
+    const last = await getSetting('last_backup', null);
+    const dismissedFor = await getSetting('backup_dismissed', null);
+
+    let overdueDays;
+    if (!last) {
+        overdueDays = null; // never backed up
+    } else {
+        const elapsed = (Date.now() - new Date(last).getTime()) / 86400000;
+        if (elapsed < days) return; // not due yet
+        overdueDays = Math.floor(elapsed);
+    }
+
+    // don't re-nag if dismissed today
+    const today = new Date().toISOString().slice(0, 10);
+    if (dismissedFor === today) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'backup-banner';
+    const msg = overdueDays == null ?
+        'No backup yet. Export your data to keep it safe.' :
+        `Last backup ${overdueDays} days ago. Consider exporting.`;
+    banner.innerHTML = `
+    <span>${msg}</span>
+    <span class="bb-actions">
+      <button class="term-btn small" id="bb-export">Export</button>
+      <button class="term-btn small" id="bb-dismiss">Dismiss</button>
+    </span>`;
+    container.prepend(banner);
+
+    banner.querySelector('#bb-export').addEventListener('click', () => {
+        goTo('data');
+    });
+    banner.querySelector('#bb-dismiss').addEventListener('click', async() => {
+        banner.remove(); // remove immediately
+        try { await setSetting('backup_dismissed', today); } catch (e) { console.error(e); }
+    });
 }

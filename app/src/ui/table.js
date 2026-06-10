@@ -1,4 +1,4 @@
-import { getCategoryColumns, getCategoryEntries, deleteEntries, getSetting } from '../db/api.js';
+import { getCategoryColumns, getCategoryEntries, deleteEntries, getSetting, setSetting } from '../db/api.js';
 import { confirmDialog } from './confirm.js';
 import { openFilterPanel, entryPasses, hasActiveFilters } from './filters.js';
 import { formatDate } from './format.js';
@@ -40,6 +40,12 @@ export async function renderTable(host, category, { showMessage, onEdit, control
     }
 
     let sort = { key: null, dir: 1 };
+    const savedSort = await getSetting(`sort_${category.id}`, null);
+    if (savedSort) {
+        const [k, d] = savedSort.split(':');
+        // only apply if that column still exists in this category
+        if (columns.some((c) => c.key === k)) sort = { key: k, dir: d === 'desc' ? -1 : 1 };
+    }
     let filters = {};
     let selectMode = false;
     const selected = new Set();
@@ -139,10 +145,9 @@ export async function renderTable(host, category, { showMessage, onEdit, control
             th.addEventListener('click', () => {
                 const key = th.dataset.key;
                 if (sort.key === key) sort.dir *= -1;
-                else {
-                    sort.key = key;
-                    sort.dir = 1;
-                }
+                else { sort.key = key;
+                    sort.dir = 1; }
+                setSetting(`sort_${category.id}`, `${sort.key}:${sort.dir === 1 ? 'asc' : 'desc'}`);
                 render();
                 const col = columns.find((c) => c.key === key);
                 showMessage(`Sorted by ${col.label} ${sort.dir === 1 ? 'asc' : 'desc'}.`);

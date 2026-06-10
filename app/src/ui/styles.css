@@ -1380,3 +1380,35 @@ body.no-crt {
     border-color: var(--fg);
     color: var(--fg-bright);
 }
+
+#backup-days::-webkit-outer-spin-button,
+#backup-days::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#backup-days {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.backup-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    border: 1px solid var(--warn);
+    background: rgba(255, 210, 60, .08);
+    padding: 9px 11px;
+    margin-bottom: 12px;
+    font-size: .8rem;
+    text-transform: uppercase;
+    color: var(--warn);
+}
+
+.bb-actions {
+    display: flex;
+    gap: 6px;
+    flex: none;
+}

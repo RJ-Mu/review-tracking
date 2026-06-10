@@ -16,6 +16,7 @@ export async function renderPreferencesScreen(container, { onBack }) {
     const theme = s.theme || 'green';
     const crt = s.crt || 'on';
     const dateFmt = s.date_format || 'iso';
+    const backupDays = s.backup_days || '14';
 
     container.innerHTML = `
     <div class="table-head">
@@ -43,6 +44,10 @@ export async function renderPreferencesScreen(container, { onBack }) {
           <button class="term-btn small date-opt ${dateFmt === 'dmy' ? 'active' : ''}" data-v="dmy">10/06/2026</button>
         </div>
       </div>
+      <div class="pref-group">
+        <span class="field-label">Backup reminder (days, 0 = off)</span>
+        <input id="backup-days" class="term-input" type="number" min="0" step="1" value="${backupDays}" style="max-width:120px;" />
+      </div>
     </div>
   `;
   container.querySelector('#back').addEventListener('click', onBack);
@@ -60,4 +65,12 @@ export async function renderPreferencesScreen(container, { onBack }) {
   wire('#theme-opts', 'theme-opt', 'theme');
   wire('#crt-opts', 'crt-opt', 'crt');
   wire('#date-opts', 'date-opt', 'date_format');
+
+  const bd = container.querySelector('#backup-days');
+  bd.addEventListener('change', async () => {
+    let n = parseInt(bd.value, 10);
+    if (!Number.isFinite(n) || n < 0) n = 0;
+    bd.value = n;
+    await setSetting('backup_days', String(n));
+  });
 }
