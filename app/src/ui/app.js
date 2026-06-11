@@ -151,26 +151,32 @@ function openNewCategory() {
 
 function openCategory(cat) {
     contentEl.innerHTML = `
-    <div class="cat-title">// ${escapeCat(cat.name)}</div>
+    <div class="cat-nav">
+      <button class="term-btn" id="back-cats">&lt; Categories</button>
+      <span class="cat-name">// ${escapeCat(cat.name)}</span>
+    </div>
     <div class="cat-toolbar">
-      <div class="tb-left">
-        <button class="term-btn" id="back-cats">&lt; Categories</button>
+      <div class="tb-left" id="tb-left">
         <button class="term-btn" id="new-entry">+ New Entry</button>
       </div>
       <div class="tb-right" id="tb-right"></div>
     </div>
     <div id="table-host"></div>
   `;
+    const tbLeft = contentEl.querySelector('#tb-left');
     const tbRight = contentEl.querySelector('#tb-right');
     const tableHost = contentEl.querySelector('#table-host');
+    const newEntryBtn = contentEl.querySelector('#new-entry');
+
     contentEl.querySelector('#back-cats').addEventListener('click', renderCategoryList);
-    contentEl.querySelector('#new-entry').addEventListener('click', () => {
+    newEntryBtn.addEventListener('click', () => {
         renderEntryForm(contentEl, cat, null, {
             showMessage,
             onSaved: () => openCategory(cat),
             onCancel: () => openCategory(cat),
         });
     });
+
     renderTable(tableHost, cat, {
         showMessage,
         onEdit: (entry) => renderEntryForm(contentEl, cat, entry, {
@@ -179,6 +185,8 @@ function openCategory(cat) {
             onCancel: () => openCategory(cat),
         }),
         controlsHost: tbRight,
+        leftHost: tbLeft, // table controls the left slot for the delete button
+        newEntryBtn, // so the table can hide/show New Entry in select mode
     });
 }
 

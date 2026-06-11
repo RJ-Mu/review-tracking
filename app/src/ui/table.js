@@ -21,7 +21,7 @@ function escapeHtml(s) {
 }
 
 // host = where the table renders; controlsHost = toolbar slot for select/delete icons.
-export async function renderTable(host, category, { showMessage, onEdit, controlsHost }) {
+export async function renderTable(host, category, { showMessage, onEdit, controlsHost, leftHost, newEntryBtn }) {
     let columns, entries;
     const dateFmt = await getSetting('date_format', 'iso');
     try {
@@ -51,18 +51,24 @@ export async function renderTable(host, category, { showMessage, onEdit, control
     const selected = new Set();
 
     // Controls live in the toolbar slot and persist across table re-renders.
+    // Right slot: filter + select toggle
     controlsHost.innerHTML = `
     <button class="icon-btn" id="filter-btn" title="Filter"><span class="icon-count" id="filter-dot" hidden></span>${ICON_FILTER}</button>
-    <button class="icon-btn danger" id="delete-sel" hidden title="Delete selected">
-      <span class="icon-count" id="del-count">0</span>${ICON_TRASH}
-    </button>
     <button class="icon-btn" id="toggle-select" title="Select rows">${ICON_SELECT}</button>
   `;
+    // Left slot: a delete button that lives next to / replacing New Entry. Hidden until select mode.
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn danger';
+    deleteBtn.id = 'delete-sel';
+    deleteBtn.title = 'Delete selected';
+    deleteBtn.hidden = true;
+    deleteBtn.innerHTML = `<span class="icon-count" id="del-count">0</span>${ICON_TRASH}`;
+    leftHost.appendChild(deleteBtn);
+
     const filterBtn = controlsHost.querySelector('#filter-btn');
     const filterDot = controlsHost.querySelector('#filter-dot');
     const toggleBtn = controlsHost.querySelector('#toggle-select');
-    const deleteBtn = controlsHost.querySelector('#delete-sel');
-    const delCount = controlsHost.querySelector('#del-count');
+    const delCount = deleteBtn.querySelector('#del-count');
 
     const valueOf = (entry, col) => {
         const v = col.source === 'base' ? entry[col.key] : entry.data[col.key];
@@ -95,6 +101,8 @@ export async function renderTable(host, category, { showMessage, onEdit, control
         toggleBtn.innerHTML = selectMode ? ICON_CANCEL : ICON_SELECT;
         toggleBtn.classList.toggle('active', selectMode);
         toggleBtn.title = selectMode ? 'Cancel selection' : 'Select rows';
+        // in select mode: hide New Entry, show Delete in its place
+        if (newEntryBtn) newEntryBtn.hidden = selectMode;
         deleteBtn.hidden = !selectMode;
         delCount.textContent = String(selected.size);
         deleteBtn.disabled = selected.size === 0;
@@ -145,8 +153,10 @@ export async function renderTable(host, category, { showMessage, onEdit, control
             th.addEventListener('click', () => {
                 const key = th.dataset.key;
                 if (sort.key === key) sort.dir *= -1;
-                else { sort.key = key;
-                    sort.dir = 1; }
+                else {
+                    sort.key = key;
+                    sort.dir = 1;
+                }
                 setSetting(`sort_${category.id}`, `${sort.key}:${sort.dir === 1 ? 'asc' : 'desc'}`);
                 render();
                 const col = columns.find((c) => c.key === key);

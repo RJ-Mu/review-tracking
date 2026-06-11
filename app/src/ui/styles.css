@@ -500,6 +500,10 @@ table.data tbody tr.row-selected {
     text-shadow: var(--glow);
 }
 
+.icon-btn[hidden] {
+    display: none !important;
+}
+
 .icon-btn svg {
     filter: drop-shadow(0 0 3px rgba(var(--accent-rgb), .5));
 }
@@ -1262,12 +1266,18 @@ body {
     margin-top: -5px;
 }
 
-.cat-title {
+.cat-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 10px;
+}
+
+.cat-nav .cat-name {
     text-transform: uppercase;
     letter-spacing: .1em;
     color: var(--fg-bright);
     font-size: .95rem;
-    margin: 4px 0 10px;
 }
 
 .data-screen {
