@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050a05">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="stylesheet" href="./styles.css">
+<title>WX</title>
+</head>
+<body>
+
+<div id="app">
+
+  <header class="term-header">
+    <div class="hrow">
+      <h1>WX<span class="cursor"></span></h1>
+      <div class="hdr-btns">
+        <button class="term-btn small" id="btn-locate">LOCATE</button>
+        <button class="term-btn small" id="btn-search">SEARCH</button>
+      </div>
+    </div>
+    <div class="sub" id="loc-line">NO LOCATION SET</div>
+  </header>
+
+  <div class="search" id="search-panel">
+    <div class="search-row">
+      <input type="search" class="term-input" id="search-input" placeholder="CITY NAME..." autocomplete="off">
+      <button class="term-btn" id="btn-go">GO</button>
+    </div>
+    <ul class="cat-list search-results" id="search-results"></ul>
+  </div>
+
+  <div class="tabs">
+    <button class="term-btn on" id="tab-forecast">FORECAST</button>
+    <button class="term-btn" id="tab-rain">RAIN</button>
+    <button class="term-btn" id="tab-pollen">POLLEN</button>
+  </div>
+
+  <div class="page on" id="page-forecast">
+    <div class="prompt" id="fc-prompt">&gt; 14-DAY FORECAST</div>
+    <ul class="cat-list" id="days"></ul>
+  </div>
+
+  <div class="page" id="page-rain">
+    <div class="prompt">&gt; EXPECTED PRECIPITATION [MM/H]</div>
+    <div class="range-btns">
+      <button class="term-btn small" id="rng-3">3H</button>
+      <button class="term-btn small" id="rng-8">8H</button>
+      <button class="term-btn small on" id="rng-24">24H</button>
+      <button class="term-btn small" id="rng-48">48H</button>
+    </div>
+    <div class="rain-chart" id="rain-chart"></div>
+    <div class="rain-total" id="rain-total"></div>
+  </div>
+
+  <div class="page" id="page-pollen">
+    <div class="prompt">&gt; POLLEN RADAR</div>
+    <div class="pollen-radar" id="pollen-radar"></div>
+    <div class="pollen-list" id="pollen-list"></div>
+  </div>
+
+  <div class="msg-strip" id="msg"></div>
+
+</div>
+
+<script src="./app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js");
+    });
+  }
+</script>
+</body>
+</html>
