@@ -1422,3 +1422,75 @@ body.no-crt {
     gap: 6px;
     flex: none;
 }
+
+
+/* --- column list with drag reorder --- */
+
+.col-list {
+    list-style: none;
+}
+
+.col-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 46px;
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), .25);
+    background: var(--bg);
+}
+
+.col-item {
+    position: relative;
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.col-item.dragging {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .55), 0 0 12px rgba(var(--accent-rgb), .35);
+    border: 1px solid var(--fg);
+    background: color-mix(in srgb, var(--bg) 88%, rgb(var(--accent-rgb)));
+    z-index: 5;
+    transition: none;
+}
+
+.drag-handle {
+    flex: none;
+    width: 32px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: var(--fg-dim);
+    touch-action: none;
+    user-select: none;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+    color: var(--fg);
+}
+
+.col-item .col-edit-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.col-item .tag {
+    flex: none;
+    color: var(--fg-dim);
+    font-size: .72rem;
+}
+
+
+/* --- danger zone --- */
+
+.danger-zone {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--err);
+}
+
+.danger-zone .term-btn {
+    width: 100%;
+}

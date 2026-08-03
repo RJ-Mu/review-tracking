@@ -246,3 +246,20 @@ export async function getAllSettings() {
     for (const r of rows) out[r.key] = r.value;
     return out;
 }
+
+// --- Column reordering + category deletion ---
+
+export async function updateColumnPositions(categoryId, orderedNames) {
+    for (let i = 0; i < orderedNames.length; i++) {
+        await execute(
+            `UPDATE category_columns SET position = ? WHERE category_id = ? AND name = ?`, [i, categoryId, orderedNames[i]]);
+    }
+}
+
+// Permanent. Entries must go first — the entries FK has no ON DELETE CASCADE.
+export async function deleteCategory(categoryId) {
+    await execute(`DELETE FROM entries WHERE category_id = ?`, [categoryId]);
+    await execute(`DELETE FROM category_columns WHERE category_id = ?`, [categoryId]);
+    await execute(`DELETE FROM categories WHERE id = ?`, [categoryId]);
+    await execute(`DELETE FROM settings WHERE key = ?`, [`sort_${categoryId}`]);
+}

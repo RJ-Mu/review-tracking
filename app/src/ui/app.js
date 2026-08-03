@@ -131,6 +131,7 @@ async function renderManageList() {
                 renderCategoryEdit(contentEl, { id: cat.id, name: cat.name }, {
                     showMessage,
                     onBack: renderManageList,
+                    onDeleted: renderManageList,
                 });
             });
             list.appendChild(li);
